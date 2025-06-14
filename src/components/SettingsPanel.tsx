@@ -57,7 +57,8 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                         loadedSettings?.aiProvider?.claudeKey || 
                         loadedSettings?.aiProvider?.geminiKey;
       
-      if (!hasApiKeys && !loadedSettings?.setupCompleted) {
+      // Check if setup was completed (remove the setupCompleted check that doesn't exist in type)
+      if (!hasApiKeys) {
         setIsFirstTime(true);
         setShowWizard(true);
       }
@@ -149,7 +150,8 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
 
   const saveSettings = async (newSettings: any) => {
     try {
-      await chromeStorage.saveSettings({ ...newSettings, setupCompleted: true });
+      // Remove the setupCompleted property that doesn't exist in the type
+      await chromeStorage.saveSettings(newSettings);
       setSettings(newSettings);
       
       // Update provider fallback service
