@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,8 +10,10 @@ import { AudioSettingsSection } from "./settings/AudioSettingsSection";
 import { PrivacySection } from "./settings/PrivacySection";
 import { QuickSettingsSidebar } from "./settings/QuickSettingsSidebar";
 import { SettingsErrorBoundary } from "./settings/SettingsErrorBoundary";
-import { SettingsSearch } from "./settings/SettingsSearch";
 import { ConfigTemplates } from "./settings/ConfigTemplates";
+import { EnhancedSettingsSearch } from "./settings/EnhancedSettingsSearch";
+import { SectionResetButtons } from "./settings/SectionResetButtons";
+import { AdvancedFeaturesTab } from "./settings/AdvancedFeaturesTab";
 
 interface SettingsPanelProps {
   onNavigate: (tab: string) => void;
@@ -101,6 +102,13 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
     }
   };
 
+  const resetSection = (section: string) => {
+    const defaultSettings = getDefaultSettings();
+    const newSettings = { ...settings };
+    newSettings[section] = defaultSettings[section];
+    saveSettings(newSettings);
+  };
+
   const resetAllSettings = () => {
     const defaultSettings = getDefaultSettings();
     saveSettings(defaultSettings);
@@ -115,7 +123,7 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
     const exportData = {
       ...settings,
       exportedAt: new Date().toISOString(),
-      version: "1.0"
+      version: "2.0"
     };
     
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -143,7 +151,6 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
       try {
         const importedSettings = JSON.parse(e.target?.result as string);
         
-        // Validate imported settings structure
         if (!importedSettings.aiProvider || !importedSettings.responseStyle) {
           throw new Error("Invalid settings file format");
         }
@@ -163,6 +170,14 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleSearchNavigation = (section: string, subsection?: string) => {
+    setActiveTab(section);
+    // If there's a subsection, we could scroll to it or highlight it
+    if (subsection) {
+      console.log(`Navigate to ${section} -> ${subsection}`);
+    }
   };
 
   if (loading) {
@@ -218,14 +233,15 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                 </div>
               </div>
               
-              {/* Search and Actions */}
+              {/* Enhanced Search and Actions */}
               <div className="flex items-center space-x-3">
-                <SettingsSearch 
+                <EnhancedSettingsSearch 
                   searchQuery={searchQuery} 
                   onSearchChange={setSearchQuery}
-                  onTabChange={setActiveTab}
+                  onNavigate={handleSearchNavigation}
                 />
                 <ConfigTemplates onApplyTemplate={saveSettings} />
+                <SectionResetButtons onResetSection={resetSection} />
                 <input
                   type="file"
                   accept=".json"
@@ -273,7 +289,7 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
             {/* Main Content */}
             <div className="lg:col-span-3">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4 mb-8" role="tablist">
+                <TabsList className="grid w-full grid-cols-5 mb-8" role="tablist">
                   <TabsTrigger value="providers" role="tab" aria-selected={activeTab === 'providers'}>
                     AI Providers
                   </TabsTrigger>
@@ -285,6 +301,9 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                   </TabsTrigger>
                   <TabsTrigger value="privacy" role="tab" aria-selected={activeTab === 'privacy'}>
                     Privacy & Security
+                  </TabsTrigger>
+                  <TabsTrigger value="advanced" role="tab" aria-selected={activeTab === 'advanced'}>
+                    Advanced Features
                   </TabsTrigger>
                 </TabsList>
 
@@ -317,6 +336,14 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                     settings={settings} 
                     onSettingsChange={saveSettings}
                     searchQuery={searchQuery}
+                  />
+                </TabsContent>
+
+                <TabsContent value="advanced" role="tabpanel">
+                  <AdvancedFeaturesTab 
+                    settings={settings}
+                    onSettingsChange={saveSettings}
+                    onExportSettings={exportSettings}
                   />
                 </TabsContent>
               </Tabs>
