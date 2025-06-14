@@ -1,36 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { 
   ArrowLeft, 
-  Upload, 
   FileText, 
-  CheckCircle, 
-  AlertCircle,
-  Download,
-  Eye,
-  Trash2,
-  Brain,
-  User,
-  Mail,
-  Phone,
-  Briefcase,
-  GraduationCap,
-  Award,
-  Github,
-  Linkedin,
   RefreshCw,
-  MoreVertical,
-  X,
-  FileCheck,
-  Clock,
-  AlertTriangle
+  FileCheck
 } from "lucide-react";
 import { documentProcessingService, ProcessedDocument } from "@/services/documentProcessingService";
+import DocumentUploadZone from "./document/DocumentUploadZone";
+import DocumentLibrary from "./document/DocumentLibrary";
+import AnalysisResults from "./document/AnalysisResults";
 
 interface DocumentProcessorProps {
   onNavigate: (tab: string) => void;
@@ -41,7 +22,6 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [dragActive, setDragActive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -254,14 +234,6 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
     }
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
   const exportAnalysis = (processedDocument: ProcessedDocument) => {
     if (!processedDocument.analysis) return;
     
@@ -273,19 +245,6 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
     link.download = `${processedDocument.name}_analysis.json`;
     link.click();
     URL.revokeObjectURL(url);
-  };
-
-  const getStatusIcon = (status: ProcessedDocument['status']) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'processing':
-        return <Clock className="h-5 w-5 text-blue-500 animate-pulse" />;
-      case 'error':
-        return <AlertTriangle className="h-5 w-5 text-red-500" />;
-      default:
-        return <FileText className="h-5 w-5 text-gray-400" />;
-    }
   };
 
   const completedFiles = uploadedFiles.filter(f => f.status === 'completed');
@@ -355,327 +314,33 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Upload Section */}
           <div className="lg:col-span-1 space-y-6">
-            
-            <Card className="border-pink-100">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Upload className="h-5 w-5 text-pink-600" />
-                  <span>Upload Documents</span>
-                </CardTitle>
-                <CardDescription>
-                  Upload your resume for AI-powered analysis and insights
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                    dragActive 
-                      ? 'border-pink-400 bg-pink-50' 
-                      : 'border-pink-200 hover:border-pink-300 hover:bg-pink-25'
-                  }`}
-                  onDragEnter={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDragOver={handleDrag}
-                  onDrop={handleDrop}
-                >
-                  <Upload className="h-12 w-12 text-pink-400 mx-auto mb-4" />
-                  <p className="text-sm font-medium text-gray-900 mb-2">
-                    Drop your resume here, or click to browse
-                  </p>
-                  <p className="text-xs text-gray-500 mb-4">
-                    Supports PDF, TXT, DOCX, MD files up to 10MB
-                  </p>
-                  <Button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white"
-                  >
-                    Choose File
-                  </Button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,.txt,.docx,.md"
-                    multiple
-                    onChange={(e) => e.target.files && handleFiles(e.target.files)}
-                    className="hidden"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <DocumentUploadZone
+              dragActive={dragActive}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              onFilesSelected={handleFiles}
+            />
 
-            {/* Document Management */}
-            {uploadedFiles.length > 0 && (
-              <Card className="border-pink-100">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">Document Library</CardTitle>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="secondary" className="text-xs">
-                        {uploadedFiles.length} total
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  {/* Bulk Actions */}
-                  {uploadedFiles.length > 1 && (
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                      <div className="flex items-center space-x-3">
-                        <Checkbox
-                          checked={selectedFiles.size === uploadedFiles.length}
-                          onCheckedChange={handleSelectAll}
-                        />
-                        <span className="text-sm text-gray-600">
-                          {selectedFiles.size > 0 ? `${selectedFiles.size} selected` : 'Select all'}
-                        </span>
-                      </div>
-                      
-                      {selectedFiles.size > 0 && (
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleBulkExport}
-                            className="text-blue-600 hover:text-blue-700"
-                          >
-                            <Download className="h-4 w-4 mr-1" />
-                            Export
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleBulkDelete}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Delete
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {uploadedFiles.map((file) => (
-                      <div key={file.id} className={`p-4 rounded-lg border transition-all ${
-                        selectedFiles.has(file.id) 
-                          ? 'border-pink-300 bg-pink-50' 
-                          : 'border-gray-200 bg-gray-50 hover:border-gray-300'
-                      }`}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <Checkbox
-                              checked={selectedFiles.has(file.id)}
-                              onCheckedChange={(checked) => handleSelectFile(file.id, checked as boolean)}
-                            />
-                            <div className="w-10 h-10 bg-gradient-to-br from-pink-100 to-rose-100 rounded-lg flex items-center justify-center">
-                              {getStatusIcon(file.status)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
-                              <div className="flex items-center space-x-2 text-xs text-gray-500">
-                                <span>{formatFileSize(file.size)}</span>
-                                <span>•</span>
-                                <span className="capitalize">{file.status}</span>
-                                {file.status === 'processing' && (
-                                  <div className="w-3 h-3 border border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center space-x-1">
-                            {file.status === 'completed' && file.analysis && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => exportAnalysis(file)}
-                                className="text-gray-400 hover:text-blue-500"
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeFile(file.id)}
-                              className="text-gray-400 hover:text-red-500"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        {file.status === 'processing' && (
-                          <div className="mt-3">
-                            <Progress value={65} className="h-1" />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <DocumentLibrary
+              documents={uploadedFiles}
+              selectedFiles={selectedFiles}
+              onSelectFile={handleSelectFile}
+              onSelectAll={handleSelectAll}
+              onBulkDelete={handleBulkDelete}
+              onBulkExport={handleBulkExport}
+              onDeleteDocument={removeFile}
+              onExportDocument={exportAnalysis}
+            />
           </div>
 
           {/* Analysis Results */}
-          <div className="lg:col-span-2 space-y-6">
-            {latestAnalysis ? (
-              <>
-                {/* Personal Information */}
-                <Card className="border-pink-100">
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <User className="h-5 w-5 text-pink-600" />
-                      <span>Personal Information</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-3">
-                          <User className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">{latestAnalysis.personalInfo.name}</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <Mail className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">{latestAnalysis.personalInfo.email || 'Not provided'}</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <Phone className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">{latestAnalysis.personalInfo.phone || 'Not provided'}</span>
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-3">
-                          <Linkedin className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">{latestAnalysis.personalInfo.linkedin || 'Not provided'}</span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <Github className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm">{latestAnalysis.personalInfo.github || 'Not provided'}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Skills Analysis */}
-                <Card className="border-pink-100">
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Brain className="h-5 w-5 text-pink-600" />
-                      <span>Skills Analysis</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      <div>
-                        <h4 className="font-medium text-sm text-gray-900 mb-3">Technical Skills</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {latestAnalysis.skills.technical.map((skill, index) => (
-                            <Badge key={index} variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200">
-                              {skill}
-                            </Badge>
-                          ))}
-                          {latestAnalysis.skills.technical.length === 0 && (
-                            <span className="text-sm text-gray-500">No technical skills detected</span>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-sm text-gray-900 mb-3">Soft Skills</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {latestAnalysis.skills.soft.map((skill, index) => (
-                            <Badge key={index} variant="secondary" className="bg-green-100 text-green-700 border-green-200">
-                              {skill}
-                            </Badge>
-                          ))}
-                          {latestAnalysis.skills.soft.length === 0 && (
-                            <span className="text-sm text-gray-500">No soft skills detected</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* AI Insights */}
-                <Card className="border-pink-100">
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Brain className="h-5 w-5 text-pink-600" />
-                      <span>AI Insights & Recommendations</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm font-medium">Overall Resume Score</span>
-                          <span className="text-lg font-bold text-pink-600">{latestAnalysis.insights.overallScore}%</span>
-                        </div>
-                        <Progress value={latestAnalysis.insights.overallScore} className="h-2" />
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium text-sm text-gray-900 mb-3">Strengths</h4>
-                        <div className="space-y-2">
-                          {latestAnalysis.insights.strengths.map((strength, index) => (
-                            <div key={index} className="flex items-start space-x-2">
-                              <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                              <span className="text-sm text-gray-700">{strength}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium text-sm text-gray-900 mb-3">Areas for Improvement</h4>
-                        <div className="space-y-2">
-                          {latestAnalysis.insights.improvements.map((improvement, index) => (
-                            <div key={index} className="flex items-start space-x-2">
-                              <AlertCircle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-                              <span className="text-sm text-gray-700">{improvement}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium text-sm text-gray-900 mb-3">AI Recommendations</h4>
-                        <div className="space-y-2">
-                          {latestAnalysis.insights.recommendations.map((rec, index) => (
-                            <div key={index} className="flex items-start space-x-2">
-                              <Brain className="h-4 w-4 text-pink-500 mt-0.5 flex-shrink-0" />
-                              <span className="text-sm text-gray-700">{rec}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
-            ) : (
-              <Card className="border-pink-100">
-                <CardContent className="text-center py-16">
-                  <FileText className="h-16 w-16 text-pink-200 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Documents Processed</h3>
-                  <p className="text-gray-500 mb-6">
-                    Upload your resume to get started with AI-powered analysis and insights.
-                  </p>
-                  <Button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload Resume
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+          <div className="lg:col-span-2">
+            <AnalysisResults
+              analysis={latestAnalysis}
+              onUploadClick={() => fileInputRef.current?.click()}
+            />
           </div>
         </div>
       </div>
