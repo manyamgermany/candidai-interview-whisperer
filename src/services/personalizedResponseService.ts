@@ -1,4 +1,3 @@
-
 import { UserProfile, JobDescription, UserProject, InterviewType, IndustryType } from '@/types/interviewTypes';
 import { IndustrySpecificModels } from './ai/industryModels';
 import { AIResponse } from './ai/types';
@@ -29,7 +28,7 @@ export class PersonalizedResponseService {
     }
 
     const industryPrompt = IndustrySpecificModels.buildIndustrySpecificPrompt(
-      profile.targetIndustry,
+      profile.targetIndustry as IndustryType,
       profile.interviewType,
       this.buildPersonalizedPrompt(context, questionType, framework, profile)
     );

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import { speechService } from "@/services/speech/speechService";
 import { aiService } from "@/services/aiService";
 import { chromeStorage } from "@/utils/chromeStorage";
 import { PerformanceReport } from "@/types/interviewTypes";
+import { SpeechAnalytics } from "@/services/speech/speechAnalytics";
 
 interface SessionControlProps {
   onSessionChange: (active: boolean) => void;
@@ -28,10 +28,13 @@ export const SessionControl = ({
   const [sessionActive, setSessionActive] = useState(false);
   const [sessionDuration, setSessionDuration] = useState("00:00");
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
-  const [currentAnalytics, setCurrentAnalytics] = useState({
+  const [currentAnalytics, setCurrentAnalytics] = useState<SpeechAnalytics>({
     wordsPerMinute: 0,
     fillerWords: 0,
-    confidenceScore: 0
+    confidenceScore: 0,
+    pauseDuration: 0,
+    totalWords: 0,
+    speakingTime: 0
   });
   const [currentTranscript, setCurrentTranscript] = useState("");
   const [transcriptSegments, setTranscriptSegments] = useState<any[]>([]);
@@ -123,11 +126,7 @@ export const SessionControl = ({
           }
         },
         onAnalytics: (newAnalytics) => {
-          setCurrentAnalytics({
-            wordsPerMinute: newAnalytics.wordsPerMinute || 0,
-            fillerWords: newAnalytics.fillerWords || 0,
-            confidenceScore: newAnalytics.confidenceScore || 0
-          });
+          setCurrentAnalytics(newAnalytics);
           onAnalyticsChange(newAnalytics);
         },
         onError: (error) => {
@@ -157,11 +156,7 @@ export const SessionControl = ({
             onTranscriptChange(text);
           },
           onAnalytics: (newAnalytics) => {
-            setCurrentAnalytics({
-              wordsPerMinute: newAnalytics.wordsPerMinute || 0,
-              fillerWords: newAnalytics.fillerWords || 0,
-              confidenceScore: newAnalytics.confidenceScore || 0
-            });
+            setCurrentAnalytics(newAnalytics);
             onAnalyticsChange(newAnalytics);
           }
         });

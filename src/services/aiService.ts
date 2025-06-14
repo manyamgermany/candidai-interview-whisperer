@@ -79,7 +79,7 @@ export class AIService {
   ): Promise<PerformanceReport> {
     const userProfile = personalizedResponseService.getUserProfile();
     const interviewType: InterviewType = userProfile?.interviewType || 'general';
-    const industry: IndustryType = userProfile?.targetIndustry || 'general';
+    const industry: IndustryType = (userProfile?.targetIndustry as IndustryType) || 'general';
 
     const metrics = performanceScoringService.calculatePerformanceMetrics(
       transcript,
