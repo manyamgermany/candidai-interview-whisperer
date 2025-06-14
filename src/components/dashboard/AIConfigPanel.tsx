@@ -1,285 +1,242 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Settings, Brain, Zap, Target, Volume2, MessageSquare } from "lucide-react";
-import { chromeStorage } from "@/utils/chromeStorage";
-
-interface AIConfig {
-  personalizedSuggestions: boolean;
-  realTimeCoaching: boolean;
-  industrySpecific: boolean;
-  responseFramework: 'star' | 'car' | 'soar' | 'par';
-  suggestionFrequency: number; // 1-10 scale
-  confidenceThreshold: number; // 0-100
-  voiceFeedback: boolean;
-  contextWindow: number; // words to consider for suggestions
-}
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Brain, Settings, Zap, Target, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { storageService } from "@/services/storageService";
+import { AIConfig } from "@/types/storageTypes";
 
 export const AIConfigPanel = () => {
   const [config, setConfig] = useState<AIConfig>({
-    personalizedSuggestions: true,
-    realTimeCoaching: true,
-    industrySpecific: true,
-    responseFramework: 'star',
-    suggestionFrequency: 5,
-    confidenceThreshold: 70,
-    voiceFeedback: false,
-    contextWindow: 50
+    provider: 'fallback',
+    model: 'gpt-4o-mini',
+    temperature: 0.7,
+    maxTokens: 150,
+    industryFocus: 'general',
+    responseStyle: 'balanced',
+    enablePersonalization: true,
+    enableIndustryModels: true
   });
-  const [saving, setSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    loadConfig();
+    loadConfiguration();
   }, []);
 
-  const loadConfig = async () => {
+  const loadConfiguration = async () => {
     try {
-      const settings = await chromeStorage.getSettings();
+      setIsLoading(true);
+      const settings = await storageService.getSettings();
       if (settings.aiConfig) {
-        setConfig({ ...config, ...settings.aiConfig });
+        setConfig(settings.aiConfig);
       }
     } catch (error) {
-      console.error('Error loading AI config:', error);
+      console.error('Failed to load AI configuration:', error);
+      toast({
+        title: "Configuration Error",
+        description: "Failed to load AI configuration settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const saveConfig = async () => {
-    setSaving(true);
+  const saveConfiguration = async () => {
     try {
-      const settings = await chromeStorage.getSettings();
-      await chromeStorage.saveSettings({
-        ...settings,
+      setIsSaving(true);
+      await storageService.saveSettings({
         aiConfig: config
       });
+      
+      toast({
+        title: "Configuration Saved",
+        description: "AI configuration has been updated successfully.",
+      });
     } catch (error) {
-      console.error('Error saving AI config:', error);
+      console.error('Failed to save configuration:', error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save AI configuration.",
+        variant: "destructive",
+      });
     } finally {
-      setSaving(false);
+      setIsSaving(false);
     }
   };
 
-  const updateConfig = (key: keyof AIConfig, value: any) => {
-    setConfig(prev => ({ ...prev, [key]: value }));
-  };
-
-  const resetToDefaults = () => {
-    setConfig({
-      personalizedSuggestions: true,
-      realTimeCoaching: true,
-      industrySpecific: true,
-      responseFramework: 'star',
-      suggestionFrequency: 5,
-      confidenceThreshold: 70,
-      voiceFeedback: false,
-      contextWindow: 50
-    });
-  };
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mx-auto"></div>
+          <p className="text-gray-600 mt-2">Loading AI configuration...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <Card className="border-pink-100">
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Brain className="h-5 w-5 text-pink-600" />
-          <span>AI Configuration</span>
-        </CardTitle>
-        <CardDescription>
-          Customize AI behavior and coaching preferences
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Core Features */}
-        <div className="space-y-4">
-          <h4 className="font-medium flex items-center space-x-2">
-            <Settings className="h-4 w-4" />
-            <span>Core Features</span>
-          </h4>
-          
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Personalized Suggestions</label>
-                <p className="text-xs text-gray-500">Use your profile for tailored recommendations</p>
-              </div>
-              <Switch
-                checked={config.personalizedSuggestions}
-                onCheckedChange={(checked) => updateConfig('personalizedSuggestions', checked)}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Real-time Coaching</label>
-                <p className="text-xs text-gray-500">Live feedback during sessions</p>
-              </div>
-              <Switch
-                checked={config.realTimeCoaching}
-                onCheckedChange={(checked) => updateConfig('realTimeCoaching', checked)}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Industry-Specific Models</label>
-                <p className="text-xs text-gray-500">Use specialized AI for your industry</p>
-              </div>
-              <Switch
-                checked={config.industrySpecific}
-                onCheckedChange={(checked) => updateConfig('industrySpecific', checked)}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Voice Feedback</label>
-                <p className="text-xs text-gray-500">Audio alerts for coaching tips</p>
-              </div>
-              <Switch
-                checked={config.voiceFeedback}
-                onCheckedChange={(checked) => updateConfig('voiceFeedback', checked)}
-              />
-            </div>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">AI Configuration</h1>
+          <p className="text-gray-600">Customize AI behavior and response patterns</p>
         </div>
+        <Button onClick={saveConfiguration} disabled={isSaving} className="bg-pink-600 hover:bg-pink-700">
+          {isSaving ? 'Saving...' : 'Save Configuration'}
+        </Button>
+      </div>
 
-        {/* Response Framework */}
-        <div className="space-y-3">
-          <h4 className="font-medium flex items-center space-x-2">
-            <Target className="h-4 w-4" />
-            <span>Response Framework</span>
-          </h4>
-          
+      {/* AI Provider Settings */}
+      <Card className="border-pink-100">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Brain className="h-5 w-5 text-pink-600" />
+            <span>AI Provider</span>
+          </CardTitle>
+          <CardDescription>Configure which AI service to use</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Preferred Framework</label>
-            <Select
-              value={config.responseFramework}
-              onValueChange={(value) => updateConfig('responseFramework', value)}
-            >
+            <Label htmlFor="provider">Provider</Label>
+            <Select value={config.provider} onValueChange={(value: any) => setConfig(prev => ({ ...prev, provider: value }))}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select provider" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="star">STAR (Situation, Task, Action, Result)</SelectItem>
-                <SelectItem value="car">CAR (Challenge, Action, Result)</SelectItem>
-                <SelectItem value="soar">SOAR (Situation, Objective, Action, Result)</SelectItem>
-                <SelectItem value="par">PAR (Problem, Action, Result)</SelectItem>
+                <SelectItem value="openai">OpenAI</SelectItem>
+                <SelectItem value="anthropic">Anthropic</SelectItem>
+                <SelectItem value="fallback">Fallback (Local)</SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </div>
 
-        {/* AI Sensitivity Settings */}
-        <div className="space-y-4">
-          <h4 className="font-medium flex items-center space-x-2">
-            <Zap className="h-4 w-4" />
-            <span>AI Sensitivity</span>
-          </h4>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Suggestion Frequency</label>
-                <Badge variant="outline">{config.suggestionFrequency}/10</Badge>
-              </div>
-              <Slider
-                value={[config.suggestionFrequency]}
-                onValueChange={(value) => updateConfig('suggestionFrequency', value[0])}
-                max={10}
-                min={1}
-                step={1}
-                className="w-full"
-              />
-              <p className="text-xs text-gray-500">
-                How often AI provides suggestions (1 = rarely, 10 = very frequently)
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Confidence Threshold</label>
-                <Badge variant="outline">{config.confidenceThreshold}%</Badge>
-              </div>
-              <Slider
-                value={[config.confidenceThreshold]}
-                onValueChange={(value) => updateConfig('confidenceThreshold', value[0])}
-                max={100}
-                min={0}
-                step={5}
-                className="w-full"
-              />
-              <p className="text-xs text-gray-500">
-                Minimum confidence level for AI suggestions
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Context Window</label>
-                <Badge variant="outline">{config.contextWindow} words</Badge>
-              </div>
-              <Slider
-                value={[config.contextWindow]}
-                onValueChange={(value) => updateConfig('contextWindow', value[0])}
-                max={100}
-                min={20}
-                step={10}
-                className="w-full"
-              />
-              <p className="text-xs text-gray-500">
-                Number of recent words AI considers for suggestions
-              </p>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="model">Model</Label>
+            <Select value={config.model} onValueChange={(value) => setConfig(prev => ({ ...prev, model: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select model" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
+                <SelectItem value="gpt-4">GPT-4</SelectItem>
+                <SelectItem value="claude-3-sonnet">Claude 3 Sonnet</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
 
-        {/* Actions */}
-        <div className="flex space-x-3">
-          <Button
-            onClick={saveConfig}
-            disabled={saving}
-            className="bg-pink-600 hover:bg-pink-700 text-white"
-          >
-            {saving ? 'Saving...' : 'Save Configuration'}
-          </Button>
-          <Button
-            onClick={resetToDefaults}
-            variant="outline"
-          >
-            Reset to Defaults
-          </Button>
-        </div>
-
-        {/* Configuration Preview */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h5 className="font-medium text-blue-900 mb-2">Current Configuration</h5>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="flex justify-between">
-              <span>Personalized:</span>
-              <span className={config.personalizedSuggestions ? 'text-green-600' : 'text-gray-500'}>
-                {config.personalizedSuggestions ? 'On' : 'Off'}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Live Coaching:</span>
-              <span className={config.realTimeCoaching ? 'text-green-600' : 'text-gray-500'}>
-                {config.realTimeCoaching ? 'On' : 'Off'}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Framework:</span>
-              <span className="uppercase">{config.responseFramework}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Frequency:</span>
-              <span>{config.suggestionFrequency}/10</span>
-            </div>
+          <div className="space-y-2">
+            <Label>Temperature: {config.temperature}</Label>
+            <Slider
+              value={[config.temperature]}
+              onValueChange={(value) => setConfig(prev => ({ ...prev, temperature: value[0] }))}
+              max={1}
+              min={0}
+              step={0.1}
+              className="w-full"
+            />
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Response Configuration */}
+      <Card className="border-blue-100">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Zap className="h-5 w-5 text-blue-600" />
+            <span>Response Settings</span>
+          </CardTitle>
+          <CardDescription>Customize how AI responds to your interviews</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="responseStyle">Response Style</Label>
+            <Select value={config.responseStyle} onValueChange={(value: any) => setConfig(prev => ({ ...prev, responseStyle: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select style" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="concise">Concise</SelectItem>
+                <SelectItem value="balanced">Balanced</SelectItem>
+                <SelectItem value="detailed">Detailed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="industryFocus">Industry Focus</Label>
+            <Select value={config.industryFocus} onValueChange={(value) => setConfig(prev => ({ ...prev, industryFocus: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select industry" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="general">General</SelectItem>
+                <SelectItem value="technology">Technology</SelectItem>
+                <SelectItem value="finance">Finance</SelectItem>
+                <SelectItem value="consulting">Consulting</SelectItem>
+                <SelectItem value="healthcare">Healthcare</SelectItem>
+                <SelectItem value="marketing">Marketing</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Max Response Length: {config.maxTokens} tokens</Label>
+            <Slider
+              value={[config.maxTokens]}
+              onValueChange={(value) => setConfig(prev => ({ ...prev, maxTokens: value[0] }))}
+              max={500}
+              min={50}
+              step={25}
+              className="w-full"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Feature Toggles */}
+      <Card className="border-green-100">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Target className="h-5 w-5 text-green-600" />
+            <span>Feature Settings</span>
+          </CardTitle>
+          <CardDescription>Enable or disable specific AI features</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="personalization">Personalized Responses</Label>
+              <p className="text-sm text-gray-500">Use your profile for tailored suggestions</p>
+            </div>
+            <Switch
+              id="personalization"
+              checked={config.enablePersonalization}
+              onCheckedChange={(checked) => setConfig(prev => ({ ...prev, enablePersonalization: checked }))}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="industryModels">Industry-Specific Models</Label>
+              <p className="text-sm text-gray-500">Use specialized models for your industry</p>
+            </div>
+            <Switch
+              id="industryModels"
+              checked={config.enableIndustryModels}
+              onCheckedChange={(checked) => setConfig(prev => ({ ...prev, enableIndustryModels: checked }))}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };

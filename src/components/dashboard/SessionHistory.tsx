@@ -3,177 +3,144 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { History, Download, Eye, Calendar, Clock, BarChart3, Star } from "lucide-react";
-import { chromeStorage } from "@/utils/chromeStorage";
-
-interface SessionData {
-  id: string;
-  timestamp: number;
-  platform: string;
-  duration: number;
-  transcript: string;
-  analytics: any;
-  performanceReport?: any;
-}
+import { Calendar, Clock, BarChart3, Search, Filter, Trash2, Download } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { storageService } from "@/services/storageService";
+import { SessionData } from "@/types/storageTypes";
 
 export const SessionHistory = () => {
   const [sessions, setSessions] = useState<SessionData[]>([]);
-  const [selectedSession, setSelectedSession] = useState<SessionData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [filteredSessions, setFilteredSessions] = useState<SessionData[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "practice" | "real" | "simulation">("all");
+  const [sortBy, setSortBy] = useState<"date" | "duration" | "score">("date");
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadSessions();
   }, []);
 
+  useEffect(() => {
+    filterAndSortSessions();
+  }, [sessions, searchTerm, filterType, sortBy]);
+
   const loadSessions = async () => {
     try {
-      const sessionData = await chromeStorage.getAllSessions();
-      setSessions(sessionData.sort((a, b) => b.timestamp - a.timestamp));
+      setIsLoading(true);
+      const sessionData = await storageService.getAllSessions();
+      setSessions(sessionData);
     } catch (error) {
-      console.error('Error loading sessions:', error);
+      console.error('Failed to load sessions:', error);
+      toast({
+        title: "Loading Error",
+        description: "Failed to load session history.",
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const exportSession = (session: SessionData) => {
-    const exportData = {
-      session_info: {
-        id: session.id,
-        date: new Date(session.timestamp).toISOString(),
-        platform: session.platform,
-        duration_minutes: Math.round(session.duration),
-      },
-      performance_metrics: session.performanceReport?.metrics || {},
-      transcript: session.transcript,
-      analytics: session.analytics,
-      recommendations: session.performanceReport?.recommendations || []
-    };
+  const filterAndSortSessions = () => {
+    let filtered = [...sessions];
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `session_${session.id}_${new Date(session.timestamp).toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(session =>
+        session.transcript.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        session.id.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply type filter
+    if (filterType !== "all") {
+      filtered = filtered.filter(session => session.type === filterType);
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "date":
+          return b.date - a.date;
+        case "duration":
+          return b.duration - a.duration;
+        case "score":
+          return b.performance.score - a.performance.score;
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredSessions(filtered);
   };
 
-  const formatDuration = (minutes: number) => {
-    if (minutes < 1) return '<1m';
-    if (minutes < 60) return `${Math.round(minutes)}m`;
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = Math.round(minutes % 60);
-    return `${hours}h ${remainingMinutes}m`;
+  const deleteSession = async (sessionId: string) => {
+    try {
+      await storageService.deleteSession(sessionId);
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      toast({
+        title: "Session Deleted",
+        description: "Session has been removed from history.",
+      });
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete session.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
+  const formatDuration = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  if (loading) {
-    return (
-      <Card className="border-pink-100">
-        <CardContent className="p-6">
-          <div className="text-center">Loading session history...</div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const formatDate = (timestamp: number): string => {
+    return new Date(timestamp).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
-  if (selectedSession) {
+  const getTypeColor = (type: string): string => {
+    switch (type) {
+      case 'practice': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'real': return 'bg-green-100 text-green-700 border-green-200';
+      case 'simulation': return 'bg-purple-100 text-purple-700 border-purple-200';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  };
+
+  const getScoreColor = (score: number): string => {
+    if (score >= 80) return 'text-green-600';
+    if (score >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  if (isLoading) {
     return (
       <Card className="border-pink-100">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-2">
-              <Eye className="h-5 w-5 text-pink-600" />
-              <span>Session Details</span>
-            </CardTitle>
-            <Button
-              variant="outline"
-              onClick={() => setSelectedSession(null)}
-              size="sm"
-            >
-              Back to History
-            </Button>
-          </div>
-          <CardDescription>
-            {new Date(selectedSession.timestamp).toLocaleDateString()} • {selectedSession.platform}
-          </CardDescription>
+          <CardTitle className="flex items-center space-x-2">
+            <Calendar className="h-5 w-5 text-pink-600" />
+            <span>Session History</span>
+          </CardTitle>
+          <CardDescription>Loading your interview session history...</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Session Overview */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <Clock className="h-6 w-6 text-gray-400 mx-auto mb-1" />
-              <div className="font-semibold">{formatDuration(selectedSession.duration)}</div>
-              <div className="text-xs text-gray-500">Duration</div>
-            </div>
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <BarChart3 className="h-6 w-6 text-gray-400 mx-auto mb-1" />
-              <div className="font-semibold">{selectedSession.analytics?.totalWords || 0}</div>
-              <div className="text-xs text-gray-500">Words</div>
-            </div>
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <Star className="h-6 w-6 text-gray-400 mx-auto mb-1" />
-              <div className={`font-semibold ${getScoreColor(selectedSession.performanceReport?.metrics?.overallScore || 0)}`}>
-                {selectedSession.performanceReport?.metrics?.overallScore || 'N/A'}%
-              </div>
-              <div className="text-xs text-gray-500">Score</div>
-            </div>
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="font-semibold">{selectedSession.analytics?.wordsPerMinute || 0}</div>
-              <div className="text-xs text-gray-500">WPM</div>
-            </div>
-          </div>
-
-          {/* Performance Metrics */}
-          {selectedSession.performanceReport?.metrics && (
-            <div className="space-y-3">
-              <h4 className="font-medium">Performance Breakdown</h4>
-              {Object.entries(selectedSession.performanceReport.metrics).map(([key, value]) => {
-                if (key === 'overallScore') return null;
-                const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-                return (
-                  <div key={key} className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>{label}</span>
-                      <span className={getScoreColor(value as number)}>{value}%</span>
-                    </div>
-                    <Progress value={value as number} className="h-2" />
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Transcript Preview */}
-          <div className="space-y-2">
-            <h4 className="font-medium">Transcript Preview</h4>
-            <div className="bg-gray-50 p-4 rounded-lg max-h-32 overflow-y-auto">
-              <p className="text-sm text-gray-700">
-                {selectedSession.transcript.slice(0, 300)}
-                {selectedSession.transcript.length > 300 && '...'}
-              </p>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex space-x-2">
-            <Button
-              onClick={() => exportSession(selectedSession)}
-              variant="outline"
-              size="sm"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export Session
-            </Button>
+        <CardContent>
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mx-auto"></div>
+            <p className="text-gray-600 mt-2">Loading sessions...</p>
           </div>
         </CardContent>
       </Card>
@@ -181,81 +148,147 @@ export const SessionHistory = () => {
   }
 
   return (
-    <Card className="border-pink-100">
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <History className="h-5 w-5 text-pink-600" />
-          <span>Session History</span>
-        </CardTitle>
-        <CardDescription>
-          Review your past sessions and track your progress over time
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {sessions.length === 0 ? (
-          <div className="text-center py-8">
-            <History className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <h3 className="font-medium text-gray-900 mb-1">No sessions yet</h3>
-            <p className="text-gray-500">Complete your first AI meeting to see session history</p>
+    <div className="space-y-6">
+      {/* Header and Controls */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Session History</h1>
+          <p className="text-gray-600">Review your past interview sessions and performance</p>
+        </div>
+        <Button variant="outline" className="border-pink-200 text-pink-700 hover:bg-pink-50">
+          <Download className="h-4 w-4 mr-2" />
+          Export Data
+        </Button>
+      </div>
+
+      {/* Filters and Search */}
+      <Card className="border-pink-100">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search sessions..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            <Select value={filterType} onValueChange={(value: any) => setFilterType(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="practice">Practice</SelectItem>
+                <SelectItem value="real">Real Interview</SelectItem>
+                <SelectItem value="simulation">Simulation</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">Date</SelectItem>
+                <SelectItem value="duration">Duration</SelectItem>
+                <SelectItem value="score">Score</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <span className="text-sm text-gray-600">{filteredSessions.length} sessions</span>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {sessions.slice(0, 10).map((session) => (
-              <div
-                key={session.id}
-                className="p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-3">
-                      <span className="font-medium">
-                        {new Date(session.timestamp).toLocaleDateString()}
+        </CardContent>
+      </Card>
+
+      {/* Session List */}
+      {filteredSessions.length === 0 ? (
+        <Card className="border-gray-200">
+          <CardContent className="text-center py-12">
+            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No sessions found</h3>
+            <p className="text-gray-600">
+              {searchTerm || filterType !== "all" 
+                ? "Try adjusting your filters or search terms" 
+                : "Start your first interview session to see history here"}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {filteredSessions.map((session) => (
+            <Card key={session.id} className="border-gray-200 hover:border-pink-200 transition-colors">
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <Badge className={getTypeColor(session.type)}>
+                        {session.type.charAt(0).toUpperCase() + session.type.slice(1)}
+                      </Badge>
+                      <span className="text-sm text-gray-500 flex items-center">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        {formatDate(session.date)}
                       </span>
-                      <Badge variant="outline">{session.platform}</Badge>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-gray-500 flex items-center">
+                        <Clock className="h-4 w-4 mr-1" />
                         {formatDuration(session.duration)}
                       </span>
-                      {session.performanceReport?.metrics?.overallScore && (
-                        <span className={`text-sm font-medium ${getScoreColor(session.performanceReport.metrics.overallScore)}`}>
-                          {session.performanceReport.metrics.overallScore}%
-                        </span>
-                      )}
                     </div>
-                    <p className="text-sm text-gray-600">
-                      {new Date(session.timestamp).toLocaleTimeString()} • 
-                      {session.analytics?.totalWords || 0} words
-                    </p>
+                    
+                    <div className="mb-3">
+                      <div className="flex items-center space-x-3 mb-1">
+                        <span className="text-sm font-medium">Performance Score:</span>
+                        <span className={`font-bold ${getScoreColor(session.performance.score)}`}>
+                          {session.performance.score}%
+                        </span>
+                      </div>
+                      <Progress value={session.performance.score} className="h-2" />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium text-gray-700">Words per minute:</span>
+                        <span className="ml-2">{session.analytics.wordsPerMinute}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Total words:</span>
+                        <span className="ml-2">{session.analytics.totalWords}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Confidence:</span>
+                        <span className="ml-2">{Math.round(session.analytics.confidenceScore)}%</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">Filler words:</span>
+                        <span className="ml-2">{session.analytics.fillerWords}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedSession(session)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
+
+                  <div className="flex space-x-2 ml-4">
+                    <Button variant="outline" size="sm">
+                      <BarChart3 className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => exportSession(session)}
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => deleteSession(session.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      <Download className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
-              </div>
-            ))}
-            {sessions.length > 10 && (
-              <div className="text-center pt-4">
-                <p className="text-sm text-gray-500">
-                  Showing recent 10 sessions of {sessions.length} total
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
