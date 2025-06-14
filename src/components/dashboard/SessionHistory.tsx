@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,7 +49,7 @@ export const SessionHistory = () => {
     // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(session =>
-        session.transcript.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (session.transcript || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         session.id.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -66,9 +65,9 @@ export const SessionHistory = () => {
         case "date":
           return b.date - a.date;
         case "duration":
-          return b.duration - a.duration;
+          return (b.duration || 0) - (a.duration || 0);
         case "score":
-          return b.performance.score - a.performance.score;
+          return (b.performance?.score || 0) - (a.performance?.score || 0);
         default:
           return 0;
       }

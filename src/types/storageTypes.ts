@@ -29,14 +29,6 @@ export interface AIConfig {
   enableIndustryModels: boolean;
 }
 
-export interface Settings {
-  audioSettings: AudioSettings;
-  responseSettings: ResponseSettings;
-  privacySettings: PrivacySettings;
-  aiConfig: AIConfig;
-  screenshotHistory?: ScreenshotAnalysis[];
-}
-
 export interface ScreenshotAnalysis {
   insights: string;
   confidence: number;
@@ -44,6 +36,14 @@ export interface ScreenshotAnalysis {
   keyPoints: string[];
   actionItems: string[];
   timestamp: number;
+}
+
+export interface Settings {
+  audioSettings: AudioSettings;
+  responseSettings: ResponseSettings;
+  privacySettings: PrivacySettings;
+  aiConfig: AIConfig;
+  screenshotHistory?: ScreenshotAnalysis[];
 }
 
 export type IndustryType = 'technology' | 'finance' | 'consulting' | 'healthcare' | 'marketing' | 'sales' | 'general';
@@ -95,14 +95,22 @@ export interface PerformanceReport {
   nextSteps: string[];
 }
 
-// Add missing types for backward compatibility
+// Updated SessionData type with correct properties
 export interface SessionData {
   id: string;
-  date: string;
-  analytics: any;
-  performance: any;
-  duration?: number;
-  transcript?: string;
+  date: number; // timestamp
+  type: 'practice' | 'real' | 'simulation';
+  duration: number;
+  transcript: string;
+  analytics: {
+    wordsPerMinute: number;
+    fillerWords: number;
+    confidenceScore: number;
+    totalWords: number;
+  };
+  performance: {
+    score: number;
+  };
 }
 
 export interface StorageSettings {
@@ -117,4 +125,5 @@ export interface StorageSettings {
     shareAnalytics: boolean;
     autoDelete: boolean;
   };
+  screenshotHistory?: ScreenshotAnalysis[];
 }

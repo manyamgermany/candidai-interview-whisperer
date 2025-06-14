@@ -180,7 +180,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
           </div>
 
           {/* Sidebar - Minimal and Focused */}
-          <Sidebar onViewChange={setActiveView} />
+          <Sidebar />
         </div>
       </div>
     </div>
