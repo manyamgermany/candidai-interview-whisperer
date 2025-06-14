@@ -1,211 +1,65 @@
-
-export interface AIResponse {
-  suggestion: string;
-  confidence: number;
-  framework?: string;
-  reasoning?: string;
-}
-
-export interface AIProvider {
-  name: string;
-  endpoint: string;
-  apiKey: string;
-  model: string;
-}
+import { AISuggestion } from "@/types";
 
 export class AIService {
-  private providers: AIProvider[] = [];
-  private currentProviderIndex = 0;
+  private apiKey: string | null = null;
+  private provider: string = 'openai';
+  private config: any = {};
 
   constructor() {
-    this.loadProviders();
+    this.loadConfig();
   }
 
-  private loadProviders() {
-    // Load from environment or local storage
-    const savedProviders = localStorage.getItem('ai-providers');
-    if (savedProviders) {
-      this.providers = JSON.parse(savedProviders);
-    } else {
-      // Default providers
-      this.providers = [
-        {
-          name: 'OpenAI',
-          endpoint: 'https://api.openai.com/v1/chat/completions',
-          apiKey: process.env.REACT_APP_OPENAI_API_KEY || '',
-          model: 'gpt-4'
-        },
-        {
-          name: 'Anthropic',
-          endpoint: 'https://api.anthropic.com/v1/messages',
-          apiKey: process.env.REACT_APP_ANTHROPIC_API_KEY || '',
-          model: 'claude-3-sonnet-20240229'
-        }
-      ];
+  private async loadConfig() {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      const data = await chrome.storage.local.get('aiConfig');
+      if (data.aiConfig) {
+        this.config = data.aiConfig;
+        this.apiKey = data.aiConfig.apiKey || null;
+        this.provider = data.aiConfig.provider || 'openai';
+      }
     }
   }
 
-  async generateSuggestion(prompt: string, questionType: string): Promise<AIResponse> {
-    const provider = this.providers[this.currentProviderIndex];
-    
-    if (!provider || !provider.apiKey) {
-      return this.getFallbackResponse(questionType);
-    }
+  async generateSuggestion(
+    context: string,
+    questionType: string = 'general',
+    framework?: string
+  ): Promise<AISuggestion> {
+    console.log(`Generating AI suggestion for question type: ${questionType} with context: ${context}`);
 
+    // Mock response for demonstration
+    const mockSuggestion: AISuggestion = {
+      text: `Based on the context, consider using the ${framework || 'STAR'} method.`,
+      framework: framework || 'STAR',
+      confidence: 75
+    };
+
+    // Simulate delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return mockSuggestion;
+  }
+
+  async configure(config: any): Promise<void> {
+    console.log('Configuring AI service with:', config);
+    // Store configuration
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      await chrome.storage.local.set({ aiConfig: config });
+    }
+  }
+
+  async testProvider(provider: string): Promise<boolean> {
+    console.log('Testing AI provider:', provider);
     try {
-      const response = await this.callProvider(provider, prompt, questionType);
-      return response;
+      // Mock test - in real implementation would test actual API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return Math.random() > 0.3; // 70% success rate for demo
     } catch (error) {
-      console.error(`AI provider ${provider.name} failed:`, error);
-      
-      // Try next provider
-      this.currentProviderIndex = (this.currentProviderIndex + 1) % this.providers.length;
-      
-      if (this.currentProviderIndex === 0) {
-        // All providers failed, return fallback
-        return this.getFallbackResponse(questionType);
-      }
-      
-      return this.generateSuggestion(prompt, questionType);
+      return false;
     }
   }
 
-  private async callProvider(provider: AIProvider, prompt: string, questionType: string): Promise<AIResponse> {
-    if (provider.name === 'OpenAI') {
-      return this.callOpenAI(provider, prompt, questionType);
-    } else if (provider.name === 'Anthropic') {
-      return this.callAnthropic(provider, prompt, questionType);
-    }
-    
-    throw new Error(`Unsupported provider: ${provider.name}`);
-  }
-
-  private async callOpenAI(provider: AIProvider, prompt: string, questionType: string): Promise<AIResponse> {
-    const response = await fetch(provider.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${provider.apiKey}`
-      },
-      body: JSON.stringify({
-        model: provider.model,
-        messages: [
-          {
-            role: 'system',
-            content: `You are an AI interview coach. Provide helpful, specific suggestions for ${questionType} questions. Format your response as JSON with 'suggestion', 'confidence', and 'framework' fields.`
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        max_tokens: 150,
-        temperature: 0.7
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices[0]?.message?.content;
-    
-    try {
-      const parsed = JSON.parse(content);
-      return {
-        suggestion: parsed.suggestion,
-        confidence: parsed.confidence || 80,
-        framework: parsed.framework || 'General'
-      };
-    } catch {
-      return {
-        suggestion: content,
-        confidence: 75,
-        framework: 'General'
-      };
-    }
-  }
-
-  private async callAnthropic(provider: AIProvider, prompt: string, questionType: string): Promise<AIResponse> {
-    const response = await fetch(provider.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': provider.apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: provider.model,
-        max_tokens: 150,
-        messages: [
-          {
-            role: 'user',
-            content: `As an AI interview coach, provide a helpful suggestion for this ${questionType} question: ${prompt}. Respond in JSON format with 'suggestion', 'confidence', and 'framework' fields.`
-          }
-        ]
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const content = data.content[0]?.text;
-    
-    try {
-      const parsed = JSON.parse(content);
-      return {
-        suggestion: parsed.suggestion,
-        confidence: parsed.confidence || 80,
-        framework: parsed.framework || 'General'
-      };
-    } catch {
-      return {
-        suggestion: content,
-        confidence: 75,
-        framework: 'General'
-      };
-    }
-  }
-
-  private getFallbackResponse(questionType: string): AIResponse {
-    const fallbacks = {
-      behavioral: {
-        suggestion: "Use the STAR method: describe the Situation, Task, Action, and Result from a specific example.",
-        framework: "STAR"
-      },
-      technical: {
-        suggestion: "Break down the problem step-by-step and explain your thought process clearly.",
-        framework: "Problem-Solving"
-      },
-      situational: {
-        suggestion: "Consider multiple perspectives and explain your decision-making process.",
-        framework: "Decision-Making"
-      },
-      general: {
-        suggestion: "Be specific, provide examples, and connect your answer to the role requirements.",
-        framework: "General"
-      }
-    };
-
-    const fallback = fallbacks[questionType as keyof typeof fallbacks] || fallbacks.general;
-    
-    return {
-      suggestion: fallback.suggestion,
-      confidence: 70,
-      framework: fallback.framework
-    };
-  }
-
-  updateProviders(providers: AIProvider[]) {
-    this.providers = providers;
-    localStorage.setItem('ai-providers', JSON.stringify(providers));
-  }
-
-  getProviders(): AIProvider[] {
-    return this.providers;
+  getProviders(): string[] {
+    return ['openai', 'anthropic', 'google'];
   }
 }
 

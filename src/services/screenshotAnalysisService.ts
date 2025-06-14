@@ -11,7 +11,7 @@ export class ScreenshotAnalysisService {
     try {
       // Request screen capture permission
       const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { mediaSource: 'screen' },
+        video: true,
         audio: false
       });
 

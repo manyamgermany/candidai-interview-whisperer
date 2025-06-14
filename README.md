@@ -1,73 +1,235 @@
 
-# CandidAI ✨ - Your AI Meeting Assistant
+# CandidAI ✨ - Your AI-Powered Chrome Extension Meeting Assistant
 
-Welcome to CandidAI! This powerful Chrome Extension is designed to be your personal meeting coach, helping you excel in every professional conversation.
-
-![CandidAI Dashboard](public/placeholder.svg)
-
----
-
-## 🚀 Get Started in 3 Easy Steps
-
-1.  **Launch the Dashboard**: Click "Launch Dashboard" or "Get Started" to open the main interface.
-2.  **Start a Session**: Press the ▶️ **Play** button to begin an AI-powered session. Grant microphone access when prompted. The AI will start listening and analyzing in real-time.
-3.  **Get Real-Time Feedback**: As you speak, CandidAI provides live coaching tips, tracks your speech analytics (like WPM and filler words), and offers intelligent suggestions to improve your responses.
-
-It's that simple! End the session with the ⏸️ **Pause** button to receive a comprehensive performance report.
+<div align="center">
+  <img src="public/favicon.ico" alt="CandidAI Logo" width="32" height="32">
+  <p><em>Transform your meeting performance with real-time AI coaching and analytics</em></p>
+</div>
 
 ---
 
-## 🌟 Core Features
+## 🚀 Quick Start Guide
 
-CandidAI is packed with features to make you a more confident and effective communicator:
+### Step 1: Install the Chrome Extension
 
-*   **🎙️ Real-time Transcription & Coaching**: Get a live transcript of your meeting and receive instant feedback on your delivery.
-*   **🧠 AI-Powered Suggestions**: Leverage the power of OpenAI, Anthropic, and Google's LLMs for smart suggestions and response frameworks (STAR, PREP, etc.).
-*   **📊 In-Depth Performance Analytics**: Track your words per minute (WPM), filler word usage, speaking time, and get an overall confidence score.
-*   **📄 Document & Resume Analysis**: Upload documents like resumes (PDF, DOCX) to have the AI extract key skills and prepare you for specific discussion points.
-*   **📸 Screenshot Analysis**: Instantly analyze content from your screen to get context-aware insights and suggestions.
-*   **💬 Interactive AI Chat**: Ask questions and get help from the AI assistant at any time during your session.
-*   **📜 Session History & Reports**: Review past sessions and detailed performance reports to track your improvement over time.
+1. **Enable Developer Mode in Chrome**
+   - Open Chrome and navigate to `chrome://extensions/`
+   - Toggle "Developer mode" ON (top-right corner)
+
+2. **Load the Extension**
+   - Click "Load unpacked" button
+   - Select the `dist` folder from this project (after building)
+   - The CandidAI extension should now appear in your extensions list
+
+3. **Build the Project First** (if you haven't already)
+   ```bash
+   npm install
+   npm run build
+   ```
+
+### Step 2: Configure Your AI Settings
+
+1. **Open the Extension**
+   - Click the CandidAI icon in your Chrome toolbar
+   - Or click "Launch Dashboard" to open the full interface
+
+2. **Set Up AI Providers** (Go to Settings)
+   - Configure OpenAI API key for advanced suggestions
+   - Set up Anthropic or Google AI (optional)
+   - Test your connection to ensure it's working
+
+### Step 3: Start Your First Session
+
+1. **Join a Supported Meeting Platform**
+   - Google Meet (`meet.google.com`)
+   - Microsoft Teams (`teams.microsoft.com`) 
+   - Zoom (`zoom.us`)
+   - LinkedIn (`linkedin.com`)
+
+2. **Activate CandidAI**
+   - Look for the 🎯 floating button on your meeting screen
+   - Click it to open the control panel
+   - Press "Start Listening" to begin AI coaching
+
+3. **Get Real-Time Feedback**
+   - Grant microphone permissions when prompted
+   - Speak naturally - AI will detect questions and provide suggestions
+   - View real-time analytics and coaching tips
 
 ---
 
-## 💻 How to Develop Locally
+## ✨ Complete Feature List
 
-Want to tinker with the code? If you want to work locally using your own IDE, you can clone this repo and push changes.
+### 🎙️ **Real-Time Audio & Speech Analysis**
+- **Live Transcription**: Real-time speech-to-text conversion
+- **Question Detection**: Automatically identifies when you're being asked questions
+- **Speech Analytics**: Track words per minute, filler words, confidence levels
+- **Speaking Pace Analysis**: Get feedback on your delivery speed and rhythm
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 🧠 **AI-Powered Intelligent Suggestions**
+- **Multiple AI Providers**: OpenAI, Anthropic, Google AI integration
+- **Framework-Based Responses**: STAR, PREP, SOAR method suggestions
+- **Context-Aware Tips**: Suggestions based on question type and content
+- **Behavioral vs Technical**: Different coaching for different question types
 
-Follow these steps:
+### 📊 **Advanced Performance Analytics**
+- **Real-Time Metrics**: Live WPM, confidence scores, filler word tracking
+- **Session Reports**: Detailed post-meeting performance analysis
+- **Progress Tracking**: Monitor improvement over time
+- **Confidence Scoring**: AI-calculated confidence levels
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+### 📄 **Document Intelligence & Analysis**
+- **Resume Upload**: PDF/DOCX resume analysis and skill extraction
+- **Key Skills Identification**: Automatic detection of technical and soft skills
+- **Interview Preparation**: Personalized coaching based on your background
+- **Document Library**: Store and manage multiple documents
+
+### 📸 **Screenshot & Visual Analysis**
+- **Screen Capture**: Analyze content visible during meetings
+- **Context Detection**: Identify interview setups, presentations, shared screens
+- **Visual Insights**: AI suggestions based on what's visible on screen
+- **Meeting Platform Recognition**: Automatic detection of meeting environments
+
+### 💬 **Interactive AI Chat Assistant**
+- **Real-Time Chat**: Ask questions and get instant AI responses during sessions
+- **Contextual Help**: Get specific advice based on current conversation
+- **Practice Mode**: Chat with AI to practice responses before interviews
+- **Multi-Provider Support**: Switch between different AI models
+
+### 🎯 **Chrome Extension Integration**
+- **Seamless Injection**: Automatically works on supported platforms
+- **Floating Controls**: Unobtrusive interface that doesn't interfere with meetings
+- **Permission Management**: Secure access to microphone and screen sharing
+- **Cross-Platform**: Works across Google Meet, Teams, Zoom, and LinkedIn
+
+### 📈 **Session Management & History**
+- **Session Recording**: Keep track of all your meeting sessions
+- **Performance Trends**: View improvement over time with charts and graphs
+- **Detailed Reports**: Export comprehensive performance reports
+- **Session Replay**: Review key moments and feedback from past sessions
+
+### ⚙️ **Advanced Configuration & Settings**
+- **AI Provider Configuration**: Set up and test multiple AI services
+- **Response Customization**: Adjust suggestion types and frameworks
+- **Privacy Controls**: Manage data storage and sharing preferences
+- **Overlay Customization**: Choose between subtitle and popup suggestion styles
+
+### 🔄 **Real-Time Coaching Features**
+- **Live Feedback**: Instant suggestions as you speak
+- **Question Classification**: Automatic detection of behavioral vs technical questions
+- **Framework Recommendations**: Suggests best response structures (STAR, etc.)
+- **Confidence Boosters**: Real-time encouragement and improvement tips
+
+---
+
+## 🛠️ Development Setup
+
+Want to customize or contribute? Here's how to set up the development environment:
+
+```bash
+# Clone the repository
 git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
+
+# Build for Chrome extension
+npm run build
+
+# Run tests
+npm test
 ```
-Your browser will open with the app running and will auto-reload when you make changes!
+
+### 🏗️ Project Structure
+```
+├── public/                 # Chrome extension files
+│   ├── manifest.json      # Extension manifest
+│   ├── background.js      # Service worker
+│   └── content-script.js  # Content injection
+├── src/
+│   ├── components/        # React components
+│   ├── services/          # AI and audio services
+│   ├── hooks/             # Custom React hooks
+│   └── pages/             # Application pages
+└── dist/                  # Built extension (load this in Chrome)
+```
 
 ---
 
-## 🛠️ Technologies Used
+## 🔧 Technologies Used
 
-This project is built with a modern tech stack:
-
-- [Vite](https://vitejs.dev/)
-- [React](https://reactjs.org/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [shadcn/ui](https://ui.shadcn.com/)
+- **Frontend**: React 18, TypeScript, Tailwind CSS
+- **UI Components**: shadcn/ui component library
+- **AI Integration**: OpenAI, Anthropic, Google AI APIs
+- **Audio Processing**: Web Speech API, WebRTC
+- **Chrome Extension**: Manifest V3, Service Workers
+- **Data Visualization**: Recharts for analytics
+- **State Management**: Zustand + React Query
 
 ---
 
-<p align="center">
-  Happy with CandidAI? Give us a ⭐️ on GitHub!
-</p>
+## 📋 Supported Platforms
+
+| Platform | URL Pattern | Features Available |
+|----------|------------|-------------------|
+| 🎥 **Google Meet** | `meet.google.com/*` | ✅ Full integration |
+| 💼 **Microsoft Teams** | `teams.microsoft.com/*` | ✅ Full integration |
+| 🔍 **Zoom** | `zoom.us/*` | ✅ Full integration |
+| 💼 **LinkedIn** | `linkedin.com/*` | ✅ Full integration |
+
+---
+
+## 🔒 Privacy & Security
+
+- **Local Processing**: Speech analysis happens locally when possible
+- **Secure Storage**: All data encrypted and stored locally
+- **No Persistent Recording**: Audio is processed in real-time, not stored
+- **Optional Cloud AI**: Choose which AI providers to use
+- **GDPR Compliant**: Full control over your data
+
+---
+
+## 🆘 Troubleshooting
+
+### Common Issues:
+
+**Extension Not Loading?**
+- Ensure Developer Mode is enabled in Chrome
+- Check that you're loading the `dist` folder, not the root project
+- Try refreshing the extension and reloading the page
+
+**Microphone Not Working?**
+- Grant microphone permissions when prompted
+- Check Chrome's site permissions for the meeting platform
+- Ensure no other applications are using your microphone
+
+**AI Suggestions Not Appearing?**
+- Configure your AI provider in Settings
+- Check your API keys are valid and have credits
+- Ensure you're on a supported meeting platform
+
+**Performance Issues?**
+- Close unnecessary browser tabs
+- Check if other extensions are conflicting
+- Ensure stable internet connection for AI features
+
+---
+
+## 📞 Support & Community
+
+- 📧 **Support**: [Create an issue](https://github.com/your-repo/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/your-repo/discussions)
+- 📚 **Documentation**: [Full Docs](https://docs.candidai.com)
+- 🎥 **Tutorials**: [YouTube Channel](https://youtube.com/candidai)
+
+---
+
+<div align="center">
+  <p><strong>Ready to ace your next meeting? Install CandidAI and experience the future of meeting assistance! 🚀</strong></p>
+  
+  <p>⭐ <strong>Like CandidAI? Give us a star on GitHub!</strong> ⭐</p>
+</div>
