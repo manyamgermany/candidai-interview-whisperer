@@ -25,9 +25,13 @@ export class SpeechService {
   ];
 
   constructor() {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-      this.recognition = new SpeechRecognition();
+    // Check for Speech Recognition support with proper typing
+    const SpeechRecognitionConstructor = 
+      (window as any).SpeechRecognition || 
+      (window as any).webkitSpeechRecognition;
+      
+    if (SpeechRecognitionConstructor) {
+      this.recognition = new SpeechRecognitionConstructor();
       this.setupRecognition();
     }
   }

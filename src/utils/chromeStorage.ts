@@ -60,34 +60,40 @@ const DEFAULT_SETTINGS: StorageSettings = {
 
 export const chromeStorage = {
   async getSettings(): Promise<StorageSettings> {
-    if (typeof chrome !== 'undefined' && chrome.storage) {
-      const result = await chrome.storage.sync.get('candidai_settings');
+    if (typeof window !== 'undefined' && window.chrome?.storage) {
+      const result = await window.chrome.storage.sync.get('candidai_settings');
       return result.candidai_settings || DEFAULT_SETTINGS;
     }
     // Fallback to localStorage for development
-    const stored = localStorage.getItem('candidai_settings');
-    return stored ? JSON.parse(stored) : DEFAULT_SETTINGS;
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('candidai_settings');
+      return stored ? JSON.parse(stored) : DEFAULT_SETTINGS;
+    }
+    return DEFAULT_SETTINGS;
   },
 
   async saveSettings(settings: Partial<StorageSettings>): Promise<void> {
     const currentSettings = await this.getSettings();
     const updatedSettings = { ...currentSettings, ...settings };
     
-    if (typeof chrome !== 'undefined' && chrome.storage) {
-      await chrome.storage.sync.set({ candidai_settings: updatedSettings });
-    } else {
+    if (typeof window !== 'undefined' && window.chrome?.storage) {
+      await window.chrome.storage.sync.set({ candidai_settings: updatedSettings });
+    } else if (typeof window !== 'undefined') {
       // Fallback to localStorage for development
       localStorage.setItem('candidai_settings', JSON.stringify(updatedSettings));
     }
   },
 
   async getSessionHistory(): Promise<any[]> {
-    if (typeof chrome !== 'undefined' && chrome.storage) {
-      const result = await chrome.storage.local.get('candidai_sessions');
+    if (typeof window !== 'undefined' && window.chrome?.storage) {
+      const result = await window.chrome.storage.local.get('candidai_sessions');
       return result.candidai_sessions || [];
     }
-    const stored = localStorage.getItem('candidai_sessions');
-    return stored ? JSON.parse(stored) : [];
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('candidai_sessions');
+      return stored ? JSON.parse(stored) : [];
+    }
+    return [];
   },
 
   async saveSession(session: any): Promise<void> {
@@ -96,9 +102,9 @@ export const chromeStorage = {
     // Keep only last 50 sessions
     const limitedSessions = sessions.slice(0, 50);
     
-    if (typeof chrome !== 'undefined' && chrome.storage) {
-      await chrome.storage.local.set({ candidai_sessions: limitedSessions });
-    } else {
+    if (typeof window !== 'undefined' && window.chrome?.storage) {
+      await window.chrome.storage.local.set({ candidai_sessions: limitedSessions });
+    } else if (typeof window !== 'undefined') {
       localStorage.setItem('candidai_sessions', JSON.stringify(limitedSessions));
     }
   }
