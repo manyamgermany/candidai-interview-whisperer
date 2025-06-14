@@ -1,0 +1,240 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CandidAI Overlay</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: transparent;
+            pointer-events: none;
+        }
+        
+        .overlay-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 2147483647;
+            pointer-events: none;
+        }
+        
+        .suggestion-overlay {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            max-width: 80%;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.3s ease-out;
+            pointer-events: auto;
+        }
+        
+        .suggestion-overlay.subtitle {
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .suggestion-overlay.popup {
+            top: 100px;
+            right: 20px;
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.95), rgba(244, 63, 94, 0.95));
+            max-width: 300px;
+            text-align: left;
+            border-radius: 12px;
+            padding: 16px;
+        }
+        
+        .overlay-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .overlay-content {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        
+        .overlay-footer {
+            font-size: 11px;
+            opacity: 0.7;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            opacity: 0.7;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .close-btn:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+        
+        .hiding {
+            animation: fadeOut 0.3s ease-in;
+        }
+    </style>
+</head>
+<body>
+    <div id="overlay-container" class="overlay-container"></div>
+    
+    <script>
+        class OverlayManager {
+            constructor() {
+                this.container = document.getElementById('overlay-container');
+                this.overlays = new Map();
+                this.config = {
+                    style: 'subtitle',
+                    position: 'bottom',
+                    autoHide: true,
+                    duration: 8000
+                };
+                
+                // Listen for messages from parent window
+                window.addEventListener('message', this.handleMessage.bind(this));
+            }
+            
+            handleMessage(event) {
+                const { action, data } = event.data;
+                
+                switch (action) {
+                    case 'showSuggestion':
+                        this.showSuggestion(data);
+                        break;
+                    case 'hideSuggestion':
+                        this.hideSuggestion(data.id);
+                        break;
+                    case 'updateConfig':
+                        this.updateConfig(data);
+                        break;
+                    case 'hideAll':
+                        this.hideAll();
+                        break;
+                }
+            }
+            
+            showSuggestion(suggestion) {
+                // Remove existing overlay with same priority
+                this.overlays.forEach((overlay, id) => {
+                    if (overlay.dataset.priority === suggestion.priority) {
+                        this.hideSuggestion(id);
+                    }
+                });
+                
+                const overlay = this.createOverlayElement(suggestion);
+                this.overlays.set(suggestion.id, overlay);
+                this.container.appendChild(overlay);
+                
+                // Auto-hide if configured
+                if (this.config.autoHide && this.config.duration) {
+                    setTimeout(() => {
+                        this.hideSuggestion(suggestion.id);
+                    }, this.config.duration);
+                }
+            }
+            
+            createOverlayElement(suggestion) {
+                const overlay = document.createElement('div');
+                overlay.className = `suggestion-overlay ${this.config.style} ${suggestion.type}`;
+                overlay.dataset.id = suggestion.id;
+                overlay.dataset.priority = suggestion.priority;
+                
+                const typeIcons = {
+                    answer: '💡',
+                    tip: '📝',
+                    warning: '⚠️',
+                    success: '✅'
+                };
+                
+                overlay.innerHTML = `
+                    <div class="overlay-header">
+                        <span>${typeIcons[suggestion.type]} ${suggestion.type.toUpperCase()}</span>
+                        <button class="close-btn" onclick="overlayManager.hideSuggestion('${suggestion.id}')">✕</button>
+                    </div>
+                    <div class="overlay-content">
+                        ${suggestion.text}
+                    </div>
+                    <div class="overlay-footer">
+                        <span>${suggestion.framework ? `${suggestion.framework.toUpperCase()} framework` : 'AI Assistant'}</span>
+                        <span>${suggestion.confidence}% confidence</span>
+                    </div>
+                `;
+                
+                return overlay;
+            }
+            
+            hideSuggestion(id) {
+                const overlay = this.overlays.get(id);
+                if (overlay) {
+                    overlay.classList.add('hiding');
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            overlay.parentNode.removeChild(overlay);
+                        }
+                        this.overlays.delete(id);
+                    }, 300);
+                }
+            }
+            
+            hideAll() {
+                this.overlays.forEach((_, id) => {
+                    this.hideSuggestion(id);
+                });
+            }
+            
+            updateConfig(newConfig) {
+                this.config = { ...this.config, ...newConfig };
+            }
+        }
+        
+        // Initialize overlay manager
+        const overlayManager = new OverlayManager();
+        
+        // Notify parent that overlay is ready
+        window.parent.postMessage({ action: 'overlayReady' }, '*');
+    </script>
+</body>
+</html>
