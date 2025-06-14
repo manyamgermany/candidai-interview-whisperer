@@ -1,3 +1,5 @@
+
+import React from "react";
 import { RefreshCw } from "lucide-react";
 import { documentProcessingService, ProcessedDocument } from "@/services/documentProcessingService";
 import AnalysisResults from "./document/AnalysisResults";
