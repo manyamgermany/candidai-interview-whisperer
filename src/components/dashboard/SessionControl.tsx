@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mic, MicOff, Play, Pause, Clock } from "lucide-react";
-import { speechService } from "@/services/speechService";
+import { speechService } from "@/services/speech/speechService";
 import { aiService } from "@/services/aiService";
 import { chromeStorage } from "@/utils/chromeStorage";
 
