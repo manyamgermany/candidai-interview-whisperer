@@ -45,6 +45,7 @@ export class ContentParsingService {
     const experience = this.extractExperience(text);
     const education = this.extractEducation(text);
     const certifications = this.extractCertifications(text);
+    const projects = this.extractProjects(text);
 
     console.log('=== PARSING RESULTS ===');
     console.log('Name:', name);
@@ -54,6 +55,7 @@ export class ContentParsingService {
     console.log('Experience entries:', experience.length, experience);
     console.log('Education entries:', education.length, education);
     console.log('Certifications:', certifications.length, certifications);
+    console.log('Projects:', projects.length, projects);
 
     return {
       personalInfo: {
@@ -70,8 +72,195 @@ export class ContentParsingService {
       },
       experience,
       education,
-      certifications
+      certifications,
+      projects
     };
+  }
+
+  private extractProjects(text: string): Array<{
+    name: string;
+    description: string;
+    role: string;
+    duration: string;
+    url: string;
+    technologies: string[];
+    achievements: string[];
+  }> {
+    console.log('=== EXTRACTING PROJECTS ===');
+    const projects: Array<{
+      name: string;
+      description: string;
+      role: string;
+      duration: string;
+      url: string;
+      technologies: string[];
+      achievements: string[];
+    }> = [];
+    
+    // Look for projects section
+    const projectPatterns = [
+      /PROJECTS\n([\s\S]*?)(?=\n(?:EXPERIENCE|EDUCATION|SKILLS|CERTIFICATIONS|$))/i,
+      /PROJECT\n([\s\S]*?)(?=\n(?:EXPERIENCE|EDUCATION|SKILLS|CERTIFICATIONS|$))/i,
+      /KEY PROJECTS\n([\s\S]*?)(?=\n(?:EXPERIENCE|EDUCATION|SKILLS|CERTIFICATIONS|$))/i,
+      /PERSONAL PROJECTS\n([\s\S]*?)(?=\n(?:EXPERIENCE|EDUCATION|SKILLS|CERTIFICATIONS|$))/i
+    ];
+
+    let projectSection = '';
+    for (const pattern of projectPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        projectSection = match[1];
+        console.log('Found project section:', projectSection.substring(0, 200));
+        break;
+      }
+    }
+
+    if (projectSection) {
+      const lines = projectSection.split('\n').filter(line => line.trim());
+      let currentProject: any = null;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        console.log('Processing project line:', line);
+        
+        // Check if this is a project title line (usually first non-bullet line)
+        if (line && !line.startsWith('•') && !line.startsWith('-') && !line.startsWith('*') && 
+            !line.toLowerCase().startsWith('technologies:') && 
+            !line.toLowerCase().startsWith('tech stack:') &&
+            !line.toLowerCase().startsWith('built with:')) {
+          
+          // Save previous project if exists
+          if (currentProject) {
+            projects.push(currentProject);
+            console.log('Added project:', currentProject.name);
+          }
+          
+          // Extract project name and URL if present
+          const urlMatch = line.match(/(.*?)\s*(?:\|\s*)?(https?:\/\/[^\s]+)/);
+          const projectName = urlMatch ? urlMatch[1].trim() : line;
+          const projectUrl = urlMatch ? urlMatch[2] : '';
+          
+          currentProject = {
+            name: projectName,
+            description: '',
+            role: 'Developer', // Default role
+            duration: 'Project duration not specified',
+            url: projectUrl,
+            technologies: [],
+            achievements: []
+          };
+          console.log('Started new project:', currentProject);
+          
+          // Look ahead for description (next non-bullet line)
+          if (i + 1 < lines.length) {
+            const nextLine = lines[i + 1].trim();
+            if (nextLine && !nextLine.startsWith('•') && !nextLine.startsWith('-') && 
+                !nextLine.startsWith('*') && !nextLine.toLowerCase().includes('technologies')) {
+              currentProject.description = nextLine;
+              i++; // Skip the description line
+            }
+          }
+        }
+        // Check if this is a technology line
+        else if (line.toLowerCase().includes('technologies:') || 
+                 line.toLowerCase().includes('tech stack:') || 
+                 line.toLowerCase().includes('built with:')) {
+          if (currentProject) {
+            const techString = line.split(':')[1] || '';
+            const technologies = techString.split(/[,;]/).map(tech => tech.trim()).filter(tech => tech);
+            currentProject.technologies = technologies;
+            console.log('Added technologies:', technologies);
+          }
+        }
+        // Check if this is an achievement/bullet point
+        else if ((line.startsWith('•') || line.startsWith('-') || line.startsWith('*')) && currentProject) {
+          const achievement = line.replace(/^[•\-*]\s*/, '');
+          if (achievement) {
+            currentProject.achievements.push(achievement);
+            console.log('Added project achievement:', achievement);
+          }
+        }
+      }
+      
+      // Add the last project
+      if (currentProject) {
+        projects.push(currentProject);
+        console.log('Added final project:', currentProject.name);
+      }
+    }
+
+    // Also look for projects mentioned in experience section
+    this.extractProjectsFromExperience(text, projects);
+
+    console.log('Final projects array:', projects.length, 'entries');
+    return projects;
+  }
+
+  private extractProjectsFromExperience(text: string, existingProjects: any[]): void {
+    console.log('=== EXTRACTING PROJECTS FROM EXPERIENCE ===');
+    
+    // Look for project mentions in experience bullets
+    const experienceSection = text.match(/EXPERIENCE\n([\s\S]*?)(?=\n(?:EDUCATION|SKILLS|PROJECTS|CERTIFICATIONS|$))/i);
+    if (!experienceSection) return;
+    
+    const lines = experienceSection[1].split('\n');
+    const projectIndicators = [
+      'built', 'developed', 'created', 'implemented', 'designed',
+      'platform', 'application', 'system', 'portal', 'dashboard'
+    ];
+    
+    lines.forEach(line => {
+      const trimmed = line.trim().toLowerCase();
+      if ((trimmed.startsWith('•') || trimmed.startsWith('-')) && 
+          projectIndicators.some(indicator => trimmed.includes(indicator))) {
+        
+        // Extract potential project name and details
+        const cleanLine = line.replace(/^[•\-*]\s*/, '');
+        const words = cleanLine.split(' ');
+        
+        // Look for capitalized project names or quoted project names
+        const projectNameMatch = cleanLine.match(/(?:built|developed|created|implemented|designed)\s+(?:a\s+)?([A-Z][a-zA-Z\s]+(?:Platform|Application|System|Portal|Dashboard|Tool|Service))/i);
+        
+        if (projectNameMatch) {
+          const projectName = projectNameMatch[1].trim();
+          
+          // Check if this project already exists
+          if (!existingProjects.some(p => p.name.toLowerCase().includes(projectName.toLowerCase()))) {
+            const project = {
+              name: projectName,
+              description: cleanLine,
+              role: 'Developer',
+              duration: 'Duration not specified',
+              url: '',
+              technologies: this.extractTechnologiesFromLine(cleanLine),
+              achievements: [cleanLine]
+            };
+            
+            existingProjects.push(project);
+            console.log('Extracted project from experience:', projectName);
+          }
+        }
+      }
+    });
+  }
+
+  private extractTechnologiesFromLine(line: string): string[] {
+    const techKeywords = [
+      'React', 'Angular', 'Vue', 'Node.js', 'Python', 'Java', 'JavaScript', 'TypeScript',
+      'AWS', 'Docker', 'Kubernetes', 'MongoDB', 'PostgreSQL', 'MySQL', 'Redis',
+      'Express', 'Django', 'Flask', 'Spring', 'Laravel', 'GraphQL', 'REST'
+    ];
+    
+    const foundTech: string[] = [];
+    const lowerLine = line.toLowerCase();
+    
+    techKeywords.forEach(tech => {
+      if (lowerLine.includes(tech.toLowerCase())) {
+        foundTech.push(tech);
+      }
+    });
+    
+    return foundTech;
   }
 
   private extractLocation(text: string): string {

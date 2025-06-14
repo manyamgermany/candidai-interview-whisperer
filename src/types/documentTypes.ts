@@ -25,6 +25,15 @@ export interface DocumentAnalysis {
     gpa?: string;
   }>;
   certifications: string[];
+  projects?: Array<{
+    name: string;
+    description: string;
+    role: string;
+    duration: string;
+    url: string;
+    technologies: string[];
+    achievements: string[];
+  }>;
   insights: {
     overallScore: number;
     strengths: string[];

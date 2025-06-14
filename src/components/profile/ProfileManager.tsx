@@ -114,14 +114,16 @@ const ProfileManager = ({ initialData, onNavigate, onProfileUpdate }: ProfileMan
         experience: initialData.experience || [],
         education: initialData.education || [],
         certifications: initialData.certifications || [],
+        projects: initialData.projects || [],
       };
       
       form.reset(formData);
       setIsDataPopulated(true);
       
+      const projectsCount = initialData.projects?.length || 0;
       toast({
         title: "Profile Populated",
-        description: "Your profile has been populated from the uploaded document.",
+        description: `Your profile has been populated from the uploaded document${projectsCount > 0 ? ` including ${projectsCount} project(s)` : ''}.`,
       });
     }
   }, [initialData, form, toast, isDataPopulated]);
@@ -194,6 +196,11 @@ const ProfileManager = ({ initialData, onNavigate, onProfileUpdate }: ProfileMan
               </p>
               <p className="text-green-600 text-sm mt-1">
                 Review and customize the information below as needed.
+                {initialData.projects && initialData.projects.length > 0 && (
+                  <span className="block mt-1">
+                    📋 {initialData.projects.length} project(s) extracted and added to Projects tab
+                  </span>
+                )}
               </p>
             </div>
             <Button
@@ -216,7 +223,14 @@ const ProfileManager = ({ initialData, onNavigate, onProfileUpdate }: ProfileMan
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="personal">Personal</TabsTrigger>
               <TabsTrigger value="professional">Professional</TabsTrigger>
-              <TabsTrigger value="projects">Projects</TabsTrigger>
+              <TabsTrigger value="projects">
+                Projects
+                {form.watch("projects")?.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                    {form.watch("projects").length}
+                  </span>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="experience">Experience</TabsTrigger>
               <TabsTrigger value="education">Education</TabsTrigger>
             </TabsList>
