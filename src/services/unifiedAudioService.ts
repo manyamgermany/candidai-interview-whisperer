@@ -77,7 +77,6 @@ export class UnifiedAudioService {
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
     this.recognition.lang = 'en-US';
-    this.recognition.maxAlternatives = 3;
 
     this.recognition.onstart = () => {
       this.isCapturing = true;

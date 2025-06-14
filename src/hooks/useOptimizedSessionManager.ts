@@ -114,7 +114,7 @@ export const useOptimizedSessionManager = () => {
   }, []);
 
   const startSession = useCallback(async () => {
-    if (!unifiedAudioService.isSupported()) {
+    if (!unifiedAudioService.constructor.isSupported()) {
       handleError('Speech recognition not supported in this browser');
       return false;
     }
@@ -221,7 +221,7 @@ export const useOptimizedSessionManager = () => {
     clearError,
     
     // Computed values for UI
-    isSupported: unifiedAudioService.isSupported(),
+    isSupported: unifiedAudioService.constructor.isSupported(),
     canStart: !sessionState.isActive && sessionState.status !== 'error',
     hasError: !!sessionState.errorMessage,
     hasActiveSuggestion: !!sessionState.currentSuggestion,

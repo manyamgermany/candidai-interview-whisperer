@@ -89,13 +89,13 @@ export class AISuggestionService {
     const prompt = this.buildOptimizedPrompt(analysis, context);
 
     try {
-      const response = await aiService.generateResponse(prompt);
+      const response = await aiService.generateSuggestion(prompt, analysis.questionType);
       
       return {
         id: `suggestion_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        suggestion: response.content,
-        confidence: this.calculateConfidence(analysis, response.content),
-        type: this.determineSuggestionType(analysis, response.content),
+        suggestion: response.suggestion,
+        confidence: this.calculateConfidence(analysis, response.suggestion),
+        type: this.determineSuggestionType(analysis, response.suggestion),
         timestamp: Date.now(),
         context: context.slice(0, 100) + '...'
       };
@@ -121,7 +121,7 @@ export class AISuggestionService {
       if (relevantDocs.length > 0) {
         enhancedContext += `\nRelevant background from user documents:\n`;
         relevantDocs.forEach(doc => {
-          enhancedContext += `- ${doc.analysisResults?.summary || 'Document summary not available'}\n`;
+          enhancedContext += `- ${doc.content || 'Document content not available'}\n`;
         });
       }
     }
@@ -133,7 +133,7 @@ export class AISuggestionService {
     const keywords = this.extractKeywords(analysis.transcript);
     
     return this.userDocuments.filter(doc => {
-      const docText = (doc.analysisResults?.summary || '').toLowerCase();
+      const docText = (doc.content || '').toLowerCase();
       return keywords.some(keyword => docText.includes(keyword.toLowerCase()));
     }).slice(0, 2); // Limit to most relevant documents
   }

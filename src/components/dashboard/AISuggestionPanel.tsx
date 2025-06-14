@@ -127,7 +127,7 @@ export const AISuggestionPanel = ({
               <span className="text-sm font-medium text-purple-700">
                 Last Question Detected
               </span>
-              <Badge variant="outline" size="sm" className="capitalize">
+              <Badge variant="outline" className="capitalize">
                 {lastQuestion.questionType}
               </Badge>
             </div>
