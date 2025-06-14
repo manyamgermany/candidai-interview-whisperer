@@ -13,7 +13,6 @@ import { InterviewSimulator } from "./dashboard/InterviewSimulator";
 import { SessionHistory } from "./dashboard/SessionHistory";
 import { AIConfigPanel } from "./dashboard/AIConfigPanel";
 import { ChatInput } from "./dashboard/ChatInput";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 interface ChatMessage {
   id: string;
@@ -144,65 +143,53 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
     );
   }
 
-  // Main dashboard view with resizable layout
+  // Main dashboard view - clean and minimalistic with proper bottom alignment
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50 flex flex-col">
       <DashboardHeader onNavigate={onNavigate} />
 
-      <div className="flex-1 overflow-hidden">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
-          {/* Main Content Panel */}
-          <ResizablePanel defaultSize={70} minSize={50}>
-            <div className="h-full flex flex-col p-4 sm:p-6 lg:p-8">
-              {/* Session Control */}
-              <div className="mb-6 flex-shrink-0">
-                <SessionControl
-                  onSessionChange={setSessionActive}
-                  onTranscriptChange={setTranscript}
-                  onAnalyticsChange={setAnalytics}
-                  onAISuggestionChange={setAiSuggestion}
-                  onPerformanceReportGenerated={handlePerformanceReport}
-                />
-              </div>
+      <div className="flex-1 flex flex-col">
+        <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex flex-col flex-1">
+          {/* Session Control - Buttons at top */}
+          <div className="mb-8 flex-shrink-0">
+            <SessionControl
+              onSessionChange={setSessionActive}
+              onTranscriptChange={setTranscript}
+              onAnalyticsChange={setAnalytics}
+              onAISuggestionChange={setAiSuggestion}
+              onPerformanceReportGenerated={handlePerformanceReport}
+            />
+          </div>
 
-              {/* Scrollable Content Area */}
-              <div className="flex-1 overflow-y-auto space-y-6 mb-6">
-                <RealTimeCoaching 
-                  analytics={analytics}
-                  transcript={transcript}
-                  sessionActive={sessionActive}
-                />
-              </div>
+          {/* Scrollable content area */}
+          <div className="flex-1 space-y-6 min-h-0">
+            {/* Real-time Coaching above AI Assistant */}
+            <RealTimeCoaching 
+              analytics={analytics}
+              transcript={transcript}
+              sessionActive={sessionActive}
+            />
 
-              {/* Chat Input - Fixed at Bottom */}
-              <div className="flex-shrink-0 border-t border-pink-100 pt-4">
-                <ChatInput 
-                  onMessagesUpdate={setChatMessages}
-                  onLoadingChange={setIsChatLoading}
-                  sessionActive={sessionActive}
-                  currentTranscript={transcript}
-                />
-              </div>
-            </div>
-          </ResizablePanel>
+            {/* AI Assistant above Chat Input */}
+            <AIAssistant 
+              sessionActive={sessionActive}
+              aiSuggestion={aiSuggestion}
+              analytics={analytics}
+              chatMessages={chatMessages}
+              isLoading={isChatLoading}
+            />
+          </div>
 
-          <ResizableHandle withHandle />
-
-          {/* AI Assistant Sidebar */}
-          <ResizablePanel defaultSize={30} minSize={25} maxSize={50}>
-            <div className="h-full bg-white/50 border-l border-pink-100">
-              <div className="h-full p-4 sm:p-6">
-                <AIAssistant 
-                  sessionActive={sessionActive}
-                  aiSuggestion={aiSuggestion}
-                  analytics={analytics}
-                  chatMessages={chatMessages}
-                  isLoading={isChatLoading}
-                />
-              </div>
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+          {/* Chat Input - Fixed at bottom */}
+          <div className="mt-8 flex-shrink-0 border-t border-pink-100 pt-4">
+            <ChatInput 
+              onMessagesUpdate={setChatMessages}
+              onLoadingChange={setIsChatLoading}
+              sessionActive={sessionActive}
+              currentTranscript={transcript}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
