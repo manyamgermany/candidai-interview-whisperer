@@ -1,5 +1,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Briefcase, ExternalLink } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
 import ProjectsManager from "./ProjectsManager";
@@ -9,8 +10,6 @@ interface ProjectsTabProps {
 }
 
 const ProjectsTab = ({ form }: ProjectsTabProps) => {
-  const projects = form.watch("projects");
-
   return (
     <Card>
       <CardHeader>
@@ -23,12 +22,24 @@ const ProjectsTab = ({ form }: ProjectsTabProps) => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <ProjectsManager form={form} />
+        <FormField
+          control={form.control}
+          name="projects"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Projects</FormLabel>
+              <FormControl>
+                <ProjectsManager form={form} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         
-        {projects && projects.length > 0 && (
+        {form.watch("projects") && form.watch("projects").length > 0 && (
           <div className="space-y-4">
             <h4 className="font-medium">Your Projects</h4>
-            {projects.map((project: any, index: number) => (
+            {form.watch("projects").map((project: any, index: number) => (
               <div key={index} className="p-4 border rounded-lg">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
