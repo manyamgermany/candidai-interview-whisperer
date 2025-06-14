@@ -16,5 +16,5 @@ export interface TranscriptSegment {
   speaker?: string;
 }
 
-// Re-export for compatibility
-export { SpeechAnalytics as default };
+// Re-export for compatibility - use 'export type' for types
+export type { SpeechAnalytics as default };
