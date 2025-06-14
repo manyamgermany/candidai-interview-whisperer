@@ -54,11 +54,11 @@ export const ScreenshotAnalyzer = memo(({ onAnalysisComplete, className }: Scree
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
-            variant="outline"
+            size="lg"
             onClick={handleScreenshotAnalysis}
-            className={`border-blue-200 text-blue-600 hover:bg-blue-50 h-12 w-12 p-0 ${className}`}
+            className={`h-12 w-12 p-0 ${className || "border-blue-200 text-blue-600 hover:bg-blue-50"}`}
           >
-            <Camera className="h-5 w-5" />
+            <Camera className="h-6 w-6" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>

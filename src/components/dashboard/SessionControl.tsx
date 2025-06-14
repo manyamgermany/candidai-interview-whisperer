@@ -110,15 +110,19 @@ export const SessionControl = memo(({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant="outline"
+                      size="lg"
                       onClick={toggleRecording}
                       disabled={!sessionActive}
-                      className="border-pink-200 text-pink-600 hover:bg-pink-50 h-12 w-12 p-0"
+                      className={`${
+                        isRecording 
+                          ? "bg-red-500 hover:bg-red-600" 
+                          : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                      } text-white h-12 w-12 p-0 disabled:opacity-50`}
                     >
                       {isRecording ? (
-                        <MicOff className="h-5 w-5" />
+                        <MicOff className="h-6 w-6" />
                       ) : (
-                        <Mic className="h-5 w-5" />
+                        <Mic className="h-6 w-6" />
                       )}
                     </Button>
                   </TooltipTrigger>
@@ -128,7 +132,10 @@ export const SessionControl = memo(({
                 </Tooltip>
               </TooltipProvider>
 
-              <ScreenshotAnalyzer onAnalysisComplete={handleScreenshotAnalysis} />
+              <ScreenshotAnalyzer 
+                onAnalysisComplete={handleScreenshotAnalysis}
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border-none"
+              />
             </div>
             
             <SessionStatus
