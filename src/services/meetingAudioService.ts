@@ -1,4 +1,3 @@
-
 export interface AudioAnalysis {
   transcript: string;
   isQuestion: boolean;
@@ -183,7 +182,7 @@ export class MeetingAudioService {
   private async requestTabAudio(): Promise<MediaStream | null> {
     try {
       // This requires the tabCapture permission
-      if (chrome && chrome.tabCapture) {
+      if (typeof chrome !== 'undefined' && chrome.tabCapture) {
         return new Promise((resolve) => {
           chrome.tabCapture.capture({ audio: true }, (stream) => {
             if (chrome.runtime.lastError) {
