@@ -1,9 +1,9 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { 
   ArrowLeft, 
@@ -23,7 +23,12 @@ import {
   Award,
   Github,
   Linkedin,
-  RefreshCw
+  RefreshCw,
+  MoreVertical,
+  X,
+  FileCheck,
+  Clock,
+  AlertTriangle
 } from "lucide-react";
 import { documentProcessingService, ProcessedDocument } from "@/services/documentProcessingService";
 
@@ -33,8 +38,10 @@ interface DocumentProcessorProps {
 
 const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
   const [uploadedFiles, setUploadedFiles] = useState<ProcessedDocument[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [dragActive, setDragActive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -59,6 +66,73 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
     }
   };
 
+  const handleSelectFile = (fileId: string, checked: boolean) => {
+    const newSelected = new Set(selectedFiles);
+    if (checked) {
+      newSelected.add(fileId);
+    } else {
+      newSelected.delete(fileId);
+    }
+    setSelectedFiles(newSelected);
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedFiles(new Set(uploadedFiles.map(f => f.id)));
+    } else {
+      setSelectedFiles(new Set());
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedFiles.size === 0) return;
+
+    try {
+      for (const fileId of selectedFiles) {
+        await documentProcessingService.deleteDocument(fileId);
+      }
+      
+      setUploadedFiles(prev => prev.filter(f => !selectedFiles.has(f.id)));
+      setSelectedFiles(new Set());
+      
+      toast({
+        title: "Documents Deleted",
+        description: `${selectedFiles.size} document(s) have been removed.`,
+      });
+    } catch (error) {
+      console.error('Failed to delete documents:', error);
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete selected documents.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkExport = () => {
+    if (selectedFiles.size === 0) return;
+
+    const selectedDocs = uploadedFiles.filter(f => selectedFiles.has(f.id) && f.analysis);
+    const exportData = selectedDocs.map(doc => ({
+      name: doc.name,
+      analysis: doc.analysis
+    }));
+
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = window.document.createElement('a');
+    link.href = url;
+    link.download = `bulk_analysis_export_${Date.now()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export Complete",
+      description: `${selectedDocs.length} analysis file(s) exported.`,
+    });
+  };
+
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -81,7 +155,6 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
 
   const handleFiles = async (files: FileList) => {
     for (const file of Array.from(files)) {
-      // Validate file type - support PDF, TXT, DOCX, MD files
       const supportedTypes = [
         'application/pdf',
         'text/plain',
@@ -103,7 +176,7 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
         continue;
       }
 
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      if (file.size > 10 * 1024 * 1024) {
         toast({
           title: "File Too Large",
           description: "Please upload files smaller than 10MB.",
@@ -113,7 +186,6 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
       }
 
       try {
-        // Add processing document to state immediately
         const processingDoc: ProcessedDocument = {
           id: Math.random().toString(36).substr(2, 9),
           name: file.name,
@@ -125,10 +197,8 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
         
         setUploadedFiles(prev => [...prev, processingDoc]);
 
-        // Process the document
         const processedDoc = await documentProcessingService.processDocument(file);
         
-        // Update the state with the processed document
         setUploadedFiles(prev => 
           prev.map(doc => doc.id === processingDoc.id ? processedDoc : doc)
         );
@@ -147,7 +217,6 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
         }
       } catch (error) {
         console.error('File processing error:', error);
-        // Since processingDoc might not be defined here, let's find the document by name
         setUploadedFiles(prev => 
           prev.map(doc => doc.name === file.name && doc.status === 'processing' 
             ? { ...doc, status: 'error' as const } 
@@ -166,6 +235,11 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
     try {
       await documentProcessingService.deleteDocument(id);
       setUploadedFiles(prev => prev.filter(f => f.id !== id));
+      setSelectedFiles(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
       toast({
         title: "Document Deleted",
         description: "Document has been removed.",
@@ -199,6 +273,19 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
     link.download = `${processedDocument.name}_analysis.json`;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const getStatusIcon = (status: ProcessedDocument['status']) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'processing':
+        return <Clock className="h-5 w-5 text-blue-500 animate-pulse" />;
+      case 'error':
+        return <AlertTriangle className="h-5 w-5 text-red-500" />;
+      default:
+        return <FileText className="h-5 w-5 text-gray-400" />;
+    }
   };
 
   const completedFiles = uploadedFiles.filter(f => f.status === 'completed');
@@ -244,14 +331,22 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
                 </div>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={loadExistingDocuments}
-              className="text-gray-600 hover:text-pink-600"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center space-x-2">
+              {uploadedFiles.length > 0 && (
+                <div className="flex items-center space-x-2 text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+                  <FileCheck className="h-4 w-4" />
+                  <span>{uploadedFiles.length} documents</span>
+                </div>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={loadExistingDocuments}
+                className="text-gray-600 hover:text-pink-600"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -300,6 +395,7 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
                     ref={fileInputRef}
                     type="file"
                     accept=".pdf,.txt,.docx,.md"
+                    multiple
                     onChange={(e) => e.target.files && handleFiles(e.target.files)}
                     className="hidden"
                   />
@@ -307,35 +403,89 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
               </CardContent>
             </Card>
 
-            {/* Uploaded Files */}
+            {/* Document Management */}
             {uploadedFiles.length > 0 && (
               <Card className="border-pink-100">
                 <CardHeader>
-                  <CardTitle className="text-lg">Uploaded Files</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">Document Library</CardTitle>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {uploadedFiles.length} total
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  {/* Bulk Actions */}
+                  {uploadedFiles.length > 1 && (
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                      <div className="flex items-center space-x-3">
+                        <Checkbox
+                          checked={selectedFiles.size === uploadedFiles.length}
+                          onCheckedChange={handleSelectAll}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {selectedFiles.size > 0 ? `${selectedFiles.size} selected` : 'Select all'}
+                        </span>
+                      </div>
+                      
+                      {selectedFiles.size > 0 && (
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleBulkExport}
+                            className="text-blue-600 hover:text-blue-700"
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            Export
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleBulkDelete}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     {uploadedFiles.map((file) => (
-                      <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-gradient-to-br from-pink-100 to-rose-100 rounded-lg flex items-center justify-center">
-                            <FileText className="h-5 w-5 text-pink-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
-                            <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          {file.status === 'processing' && (
-                            <div className="flex items-center space-x-2">
-                              <div className="w-4 h-4 border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-                              <span className="text-xs text-gray-500">Processing...</span>
+                      <div key={file.id} className={`p-4 rounded-lg border transition-all ${
+                        selectedFiles.has(file.id) 
+                          ? 'border-pink-300 bg-pink-50' 
+                          : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <Checkbox
+                              checked={selectedFiles.has(file.id)}
+                              onCheckedChange={(checked) => handleSelectFile(file.id, checked as boolean)}
+                            />
+                            <div className="w-10 h-10 bg-gradient-to-br from-pink-100 to-rose-100 rounded-lg flex items-center justify-center">
+                              {getStatusIcon(file.status)}
                             </div>
-                          )}
-                          {file.status === 'completed' && (
-                            <>
-                              <CheckCircle className="h-4 w-4 text-green-500" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
+                              <div className="flex items-center space-x-2 text-xs text-gray-500">
+                                <span>{formatFileSize(file.size)}</span>
+                                <span>•</span>
+                                <span className="capitalize">{file.status}</span>
+                                {file.status === 'processing' && (
+                                  <div className="w-3 h-3 border border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-1">
+                            {file.status === 'completed' && file.analysis && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -344,20 +494,23 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
                               >
                                 <Download className="h-4 w-4" />
                               </Button>
-                            </>
-                          )}
-                          {file.status === 'error' && (
-                            <AlertCircle className="h-4 w-4 text-red-500" />
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeFile(file.id)}
-                            className="text-gray-400 hover:text-red-500"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeFile(file.id)}
+                              className="text-gray-400 hover:text-red-500"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
+                        
+                        {file.status === 'processing' && (
+                          <div className="mt-3">
+                            <Progress value={65} className="h-1" />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -408,8 +561,6 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
                   </CardContent>
                 </Card>
 
-                
-                
                 {/* Skills Analysis */}
                 <Card className="border-pink-100">
                   <CardHeader>
