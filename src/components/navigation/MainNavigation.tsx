@@ -2,13 +2,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { User, BarChart3, Settings, Brain, History, Target } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface MainNavigationProps {
-  onViewChange: (view: 'dashboard' | 'profile' | 'simulator' | 'reports' | 'config' | 'history') => void;
   onNavigate: (tab: string) => void;
 }
 
-export const MainNavigation = ({ onViewChange, onNavigate }: MainNavigationProps) => {
+export const MainNavigation = ({ onNavigate }: MainNavigationProps) => {
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-6">
       {/* Navigation */}
@@ -19,7 +21,7 @@ export const MainNavigation = ({ onViewChange, onNavigate }: MainNavigationProps
         </CardHeader>
         <CardContent className="space-y-2">
           <Button
-            onClick={() => onViewChange('profile')}
+            onClick={() => navigate("/profile")}
             variant="ghost"
             className="w-full justify-start text-pink-700 hover:bg-pink-50"
           >
@@ -28,7 +30,7 @@ export const MainNavigation = ({ onViewChange, onNavigate }: MainNavigationProps
           </Button>
           
           <Button
-            onClick={() => onViewChange('reports')}
+            onClick={() => navigate("/reports")}
             variant="ghost"
             className="w-full justify-start text-green-700 hover:bg-green-50"
           >
@@ -37,7 +39,7 @@ export const MainNavigation = ({ onViewChange, onNavigate }: MainNavigationProps
           </Button>
 
           <Button
-            onClick={() => onViewChange('config')}
+            onClick={() => navigate("/config")}
             variant="ghost"
             className="w-full justify-start text-indigo-700 hover:bg-indigo-50"
           >
@@ -46,7 +48,7 @@ export const MainNavigation = ({ onViewChange, onNavigate }: MainNavigationProps
           </Button>
 
           <Button
-            onClick={() => onViewChange('history')}
+            onClick={() => navigate("/history")}
             variant="ghost"
             className="w-full justify-start text-purple-700 hover:bg-purple-50"
           >

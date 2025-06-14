@@ -1,12 +1,15 @@
 
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileText, BarChart3, Settings, Brain } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface DashboardHeaderProps {
   onNavigate: (tab: string) => void;
 }
 
 export const DashboardHeader = ({ onNavigate }: DashboardHeaderProps) => {
+  const navigate = useNavigate();
+
   return (
     <header className="bg-white/80 backdrop-blur-sm border-b border-pink-100 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -34,7 +37,7 @@ export const DashboardHeader = ({ onNavigate }: DashboardHeaderProps) => {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => onNavigate("documents")}
+              onClick={() => navigate("/profile")}
               className="border-pink-200 text-pink-600 hover:bg-pink-50"
             >
               <FileText className="h-4 w-4 mr-2" />
@@ -43,7 +46,7 @@ export const DashboardHeader = ({ onNavigate }: DashboardHeaderProps) => {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => onNavigate("analytics")}
+              onClick={() => navigate("/reports")}
               className="border-pink-200 text-pink-600 hover:bg-pink-50"
             >
               <BarChart3 className="h-4 w-4 mr-2" />

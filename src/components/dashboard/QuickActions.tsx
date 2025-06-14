@@ -2,13 +2,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { User, Target, BarChart3, Settings, Play, Brain } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface QuickActionsProps {
   onNavigate: (tab: string) => void;
-  onViewChange: (view: 'dashboard' | 'profile' | 'simulator' | 'reports' | 'config' | 'history') => void;
 }
 
-export const QuickActions = ({ onNavigate, onViewChange }: QuickActionsProps) => {
+export const QuickActions = ({ onNavigate }: QuickActionsProps) => {
+  const navigate = useNavigate();
+
   return (
     <Card className="border-pink-100">
       <CardHeader>
@@ -17,7 +19,7 @@ export const QuickActions = ({ onNavigate, onViewChange }: QuickActionsProps) =>
       </CardHeader>
       <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <Button
-          onClick={() => onViewChange('profile')}
+          onClick={() => navigate("/profile")}
           variant="outline"
           className="flex flex-col h-20 border-pink-200 text-pink-700 hover:bg-pink-50"
         >
@@ -26,7 +28,7 @@ export const QuickActions = ({ onNavigate, onViewChange }: QuickActionsProps) =>
         </Button>
         
         <Button
-          onClick={() => onViewChange('simulator')}
+          onClick={() => navigate("/simulator")}
           variant="outline"
           className="flex flex-col h-20 border-blue-200 text-blue-700 hover:bg-blue-50"
         >
@@ -35,7 +37,7 @@ export const QuickActions = ({ onNavigate, onViewChange }: QuickActionsProps) =>
         </Button>
         
         <Button
-          onClick={() => onViewChange('reports')}
+          onClick={() => navigate("/reports")}
           variant="outline"
           className="flex flex-col h-20 border-green-200 text-green-700 hover:bg-green-50"
         >
@@ -44,7 +46,7 @@ export const QuickActions = ({ onNavigate, onViewChange }: QuickActionsProps) =>
         </Button>
 
         <Button
-          onClick={() => onViewChange('config')}
+          onClick={() => navigate("/config")}
           variant="outline"
           className="flex flex-col h-20 border-indigo-200 text-indigo-700 hover:bg-indigo-50"
         >
@@ -62,7 +64,7 @@ export const QuickActions = ({ onNavigate, onViewChange }: QuickActionsProps) =>
         </Button>
 
         <Button
-          onClick={() => onViewChange('history')}
+          onClick={() => navigate("/history")}
           variant="outline"
           className="flex flex-col h-20 border-purple-200 text-purple-700 hover:bg-purple-50"
         >

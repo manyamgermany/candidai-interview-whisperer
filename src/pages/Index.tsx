@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,15 @@ import SettingsPanel from "@/components/SettingsPanel";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("landing");
+  const navigate = useNavigate();
+
+  const handleNavigate = (tab: string) => {
+    if (tab === "dashboard") {
+      navigate("/dashboard");
+    } else {
+      setActiveTab(tab);
+    }
+  };
 
   const features = [
     {
@@ -46,19 +56,19 @@ const Index = () => {
   ];
 
   if (activeTab === "dashboard") {
-    return <Dashboard onNavigate={setActiveTab} />;
+    return <Dashboard onNavigate={handleNavigate} />;
   }
 
   if (activeTab === "documents") {
-    return <DocumentProcessor onNavigate={setActiveTab} />;
+    return <DocumentProcessor onNavigate={handleNavigate} />;
   }
 
   if (activeTab === "analytics") {
-    return <AnalyticsDashboard onNavigate={setActiveTab} />;
+    return <AnalyticsDashboard onNavigate={handleNavigate} />;
   }
 
   if (activeTab === "settings") {
-    return <SettingsPanel onNavigate={setActiveTab} />;
+    return <SettingsPanel onNavigate={handleNavigate} />;
   }
 
   return (
@@ -81,13 +91,13 @@ const Index = () => {
             <div className="flex items-center space-x-4">
               <Button 
                 variant="ghost" 
-                onClick={() => setActiveTab("dashboard")}
+                onClick={() => handleNavigate("dashboard")}
                 className="text-gray-600 hover:text-pink-600"
               >
                 Dashboard
               </Button>
               <Button 
-                onClick={() => setActiveTab("dashboard")}
+                onClick={() => handleNavigate("dashboard")}
                 className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white"
               >
                 Get Started
@@ -115,7 +125,7 @@ const Index = () => {
           <div className="flex items-center justify-center space-x-4">
             <Button 
               size="lg" 
-              onClick={() => setActiveTab("dashboard")}
+              onClick={() => handleNavigate("dashboard")}
               className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-8 py-3"
             >
               Launch Dashboard
@@ -123,7 +133,7 @@ const Index = () => {
             <Button 
               size="lg" 
               variant="outline"
-              onClick={() => setActiveTab("documents")}
+              onClick={() => handleNavigate("documents")}
               className="border-pink-200 text-pink-600 hover:bg-pink-50"
             >
               Try Document Analysis
@@ -200,7 +210,7 @@ const Index = () => {
             <Button 
               size="lg" 
               variant="secondary"
-              onClick={() => setActiveTab("dashboard")}
+              onClick={() => handleNavigate("dashboard")}
               className="bg-white text-pink-600 hover:bg-gray-50 px-8 py-3"
             >
               <Chrome className="h-5 w-5 mr-2" />
@@ -209,7 +219,7 @@ const Index = () => {
             <Button 
               size="lg" 
               variant="outline"
-              onClick={() => setActiveTab("analytics")}
+              onClick={() => handleNavigate("analytics")}
               className="border-white text-white hover:bg-white/10 px-8 py-3"
             >
               <BarChart3 className="h-5 w-5 mr-2" />
