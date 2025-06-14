@@ -1,3 +1,4 @@
+
 export interface AudioSettings {
   inputDeviceId: string;
   outputDeviceId: string;
@@ -92,4 +93,28 @@ export interface PerformanceReport {
   analytics: any;
   recommendations: string[];
   nextSteps: string[];
+}
+
+// Add missing types for backward compatibility
+export interface SessionData {
+  id: string;
+  date: string;
+  analytics: any;
+  performance: any;
+  duration?: number;
+  transcript?: string;
+}
+
+export interface StorageSettings {
+  aiConfig: AIConfig;
+  audioSettings: {
+    microphoneEnabled: boolean;
+    noiseReduction: boolean;
+    autoGainControl: boolean;
+  };
+  privacySettings: {
+    storeTranscripts: boolean;
+    shareAnalytics: boolean;
+    autoDelete: boolean;
+  };
 }

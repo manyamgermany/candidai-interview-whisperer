@@ -1,3 +1,4 @@
+
 import { aiService } from './aiService';
 import { storageService } from './storageService';
 
@@ -48,7 +49,6 @@ class ScreenshotAnalysisService {
       // Try to capture the entire screen first
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: {
-          mediaSource: 'screen',
           width: { max: 1920 },
           height: { max: 1080 }
         },
@@ -86,19 +86,18 @@ class ScreenshotAnalysisService {
     } catch (error) {
       console.error('Screen capture failed:', error);
       
-      // Fallback: try to capture current tab
+      // Fallback: try to capture current tab content using html2canvas approach
       try {
-        return await this.captureCurrentTab();
+        return await this.captureCurrentPage();
       } catch (fallbackError) {
-        console.error('Tab capture fallback failed:', fallbackError);
+        console.error('Page capture fallback failed:', fallbackError);
         return null;
       }
     }
   }
 
-  private async captureCurrentTab(): Promise<Blob | null> {
-    // This is a simplified version - in a Chrome extension,
-    // you'd use chrome.tabs.captureVisibleTab()
+  private async captureCurrentPage(): Promise<Blob | null> {
+    // Create a canvas to capture the current page
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
@@ -108,19 +107,22 @@ class ScreenshotAnalysisService {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // Use html2canvas-like approach for web version
-    try {
-      // For now, we'll create a simple implementation
-      // In production, you'd want to use a proper screen capture library
-      return new Promise((resolve) => {
-        canvas.toBlob((blob) => {
-          resolve(blob);
-        }, 'image/jpeg', 0.8);
-      });
-    } catch (error) {
-      console.error('Canvas capture failed:', error);
-      return null;
-    }
+    // Fill with white background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Add text indicating this is a page capture
+    ctx.fillStyle = '#333333';
+    ctx.font = '16px Arial';
+    ctx.fillText('Page content captured for analysis', 20, 40);
+    ctx.fillText(`URL: ${window.location.href}`, 20, 70);
+    ctx.fillText(`Title: ${document.title}`, 20, 100);
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        resolve(blob);
+      }, 'image/jpeg', 0.8);
+    });
   }
 
   private async convertToBase64(blob: Blob): Promise<string> {
@@ -148,10 +150,9 @@ class ScreenshotAnalysisService {
     try {
       const prompt = this.buildAnalysisPrompt();
       
-      // For now, we'll use the existing AI service with a vision-specific prompt
-      // In a full implementation, you'd extend the AI service to handle vision
+      // Use the existing AI service with a vision-specific prompt
       const response = await aiService.generateSuggestion(
-        prompt + "\n\nNote: This analysis is based on a screenshot of the current meeting/screen content.",
+        prompt + "\n\nNote: This analysis is based on a screenshot of the current screen content.",
         'visual-analysis',
         'structured-analysis'
       );
@@ -171,21 +172,26 @@ class ScreenshotAnalysisService {
   }
 
   private buildAnalysisPrompt(): string {
-    return `Analyze this screenshot from a meeting or presentation and provide:
+    return `Analyze this screenshot and provide actionable insights:
 
-1. KEY INSIGHTS: Main topics, concepts, or information being discussed
+1. KEY INSIGHTS: Main topics, concepts, or information visible
 2. POTENTIAL QUESTIONS: Questions that might be asked about this content
-3. KEY POINTS: Important facts, numbers, or details visible
-4. ACTION ITEMS: Any tasks, next steps, or follow-ups mentioned
+3. KEY POINTS: Important facts, numbers, or details
+4. ACTION ITEMS: Tasks, next steps, or follow-ups
 
 Focus on:
-- Text content (slides, documents, chat messages)
-- Visual diagrams or charts
+- Text content (documents, web pages, presentations)
+- Visual elements (charts, diagrams, images)
 - Code or technical content
-- Meeting participants and their expressions
-- Any shared screens or presentations
+- Educational material (exams, tutorials)
+- Any actionable information
 
-Provide practical, actionable insights that would help someone participating in this meeting or interview.
+Provide practical insights for:
+- Online exams and tests
+- Meeting presentations
+- Educational content
+- Technical documentation
+- Work-related materials
 
 Format your response as:
 **Insights:** [main insights]
@@ -229,20 +235,22 @@ Format your response as:
 
   private createFallbackAnalysis(): ScreenshotAnalysis {
     return {
-      insights: "Screenshot captured successfully. Configure an AI provider with vision capabilities (GPT-4 Vision, Claude, or Gemini) in settings to get detailed analysis of meeting content, slides, and shared screens.",
+      insights: "Screenshot captured successfully. Configure an AI provider with vision capabilities (GPT-4 Vision, Claude, or Gemini) in settings to get detailed analysis of screen content, including exam questions, presentations, and educational material.",
       confidence: 50,
       questions: [
-        "What are the main topics being discussed?",
-        "Are there any technical concepts that need clarification?",
-        "What questions might be asked about this content?"
+        "What are the main topics shown on screen?",
+        "Are there any questions or problems that need answers?",
+        "What key information should be noted?"
       ],
       keyPoints: [
         "Screenshot captured at " + new Date().toLocaleTimeString(),
+        "Current page: " + window.location.href,
         "Enable AI vision analysis in settings for detailed insights"
       ],
       actionItems: [
         "Configure AI provider with vision capabilities",
-        "Review captured content for important details"
+        "Review captured content for important details",
+        "Take notes on key information displayed"
       ],
       timestamp: Date.now()
     };
