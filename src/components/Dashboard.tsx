@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { SpeechAnalytics } from "@/services/speechService";
 import { AIResponse } from "@/services/aiService";
@@ -172,8 +173,8 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
             </div>
           </div>
 
-          {/* AI Assistant - 3/4 of space */}
-          <div className="flex-1 min-h-0 mb-4" style={{ minHeight: '60vh' }}>
+          {/* AI Assistant - 3/4 of space - Remove bottom margin */}
+          <div className="flex-1 min-h-0" style={{ minHeight: '60vh' }}>
             <AIAssistant 
               sessionActive={sessionActive}
               aiSuggestion={aiSuggestion}
@@ -183,7 +184,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
             />
           </div>
 
-          {/* Chat Input - Fixed at bottom */}
+          {/* Chat Input - Fixed at bottom with top border */}
           <div className="flex-shrink-0 border-t border-pink-100 pt-3">
             <ChatInput 
               onMessagesUpdate={setChatMessages}
