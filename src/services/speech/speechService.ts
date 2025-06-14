@@ -1,3 +1,4 @@
+
 import { SpeechRecognitionManager } from './speechRecognition';
 import { SpeechAnalyticsCalculator, SpeechAnalytics, TranscriptSegment } from './speechAnalytics';
 
@@ -65,6 +66,7 @@ export class SpeechService {
         finalTranscript += transcript;
         
         const segment: TranscriptSegment = {
+          id: `${currentTime}-${i}`,
           text: transcript,
           timestamp: currentTime,
           confidence: confidence || 0.8,
