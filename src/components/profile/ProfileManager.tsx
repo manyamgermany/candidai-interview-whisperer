@@ -1,18 +1,18 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Briefcase, GraduationCap, Award, Target, Plus, X, Save, Upload, RefreshCw } from "lucide-react";
+import { Save, Upload, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentAnalysis } from "@/types/documentTypes";
+import PersonalInfoTab from "./PersonalInfoTab";
+import ProfessionalTab from "./ProfessionalTab";
+import ExperienceTab from "./ExperienceTab";
+import EducationTab from "./EducationTab";
 
 const profileSchema = z.object({
   personalInfo: z.object({
@@ -55,9 +55,6 @@ interface ProfileManagerProps {
 
 const ProfileManager = ({ initialData, onNavigate, onProfileUpdate }: ProfileManagerProps) => {
   const { toast } = useToast();
-  const [newTechnicalSkill, setNewTechnicalSkill] = useState("");
-  const [newSoftSkill, setNewSoftSkill] = useState("");
-  const [newCertification, setNewCertification] = useState("");
   const [isDataPopulated, setIsDataPopulated] = useState(false);
 
   const form = useForm<ProfileFormData>({
@@ -175,51 +172,6 @@ const ProfileManager = ({ initialData, onNavigate, onProfileUpdate }: ProfileMan
     }
   };
 
-  const addTechnicalSkill = () => {
-    if (newTechnicalSkill.trim()) {
-      const currentSkills = form.getValues("skills.technical");
-      if (!currentSkills.includes(newTechnicalSkill.trim())) {
-        form.setValue("skills.technical", [...currentSkills, newTechnicalSkill.trim()]);
-        setNewTechnicalSkill("");
-      }
-    }
-  };
-
-  const removeTechnicalSkill = (skill: string) => {
-    const currentSkills = form.getValues("skills.technical");
-    form.setValue("skills.technical", currentSkills.filter(s => s !== skill));
-  };
-
-  const addSoftSkill = () => {
-    if (newSoftSkill.trim()) {
-      const currentSkills = form.getValues("skills.soft");
-      if (!currentSkills.includes(newSoftSkill.trim())) {
-        form.setValue("skills.soft", [...currentSkills, newSoftSkill.trim()]);
-        setNewSoftSkill("");
-      }
-    }
-  };
-
-  const removeSoftSkill = (skill: string) => {
-    const currentSkills = form.getValues("skills.soft");
-    form.setValue("skills.soft", currentSkills.filter(s => s !== skill));
-  };
-
-  const addCertification = () => {
-    if (newCertification.trim()) {
-      const currentCerts = form.getValues("certifications");
-      if (!currentCerts.includes(newCertification.trim())) {
-        form.setValue("certifications", [...currentCerts, newCertification.trim()]);
-        setNewCertification("");
-      }
-    }
-  };
-
-  const removeCertification = (cert: string) => {
-    const currentCerts = form.getValues("certifications");
-    form.setValue("certifications", currentCerts.filter(c => c !== cert));
-  };
-
   return (
     <div className="space-y-6">
       {initialData && (
@@ -258,334 +210,19 @@ const ProfileManager = ({ initialData, onNavigate, onProfileUpdate }: ProfileMan
             </TabsList>
 
             <TabsContent value="personal" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <User className="h-5 w-5" />
-                    <span>Personal Information</span>
-                  </CardTitle>
-                  <CardDescription>
-                    Your basic contact and personal details
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="personalInfo.name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="John Doe" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="personalInfo.email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input placeholder="john@example.com" type="email" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="personalInfo.phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Phone</FormLabel>
-                          <FormControl>
-                            <Input placeholder="+1 (555) 123-4567" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="personalInfo.location"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Location</FormLabel>
-                          <FormControl>
-                            <Input placeholder="New York, NY" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="personalInfo.linkedin"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>LinkedIn Profile</FormLabel>
-                          <FormControl>
-                            <Input placeholder="linkedin.com/in/johndoe" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="personalInfo.github"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>GitHub Profile</FormLabel>
-                          <FormControl>
-                            <Input placeholder="github.com/johndoe" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+              <PersonalInfoTab form={form} />
             </TabsContent>
 
             <TabsContent value="professional" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Briefcase className="h-5 w-5" />
-                    <span>Professional Profile</span>
-                  </CardTitle>
-                  <CardDescription>
-                    Your professional summary and target role
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="professionalSummary"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Professional Summary</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Brief description of your professional background and key strengths..."
-                            className="h-24"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          A compelling summary that highlights your experience and value proposition
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="targetRole"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Target Role</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Software Engineer" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="experienceLevel"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Experience Level</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select experience level" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="entry">Entry Level (0-2 years)</SelectItem>
-                              <SelectItem value="mid">Mid Level (2-5 years)</SelectItem>
-                              <SelectItem value="senior">Senior Level (5+ years)</SelectItem>
-                              <SelectItem value="executive">Executive Level</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Technical Skills</label>
-                      <div className="flex space-x-2 mb-2">
-                        <Input
-                          value={newTechnicalSkill}
-                          onChange={(e) => setNewTechnicalSkill(e.target.value)}
-                          placeholder="Add technical skill"
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTechnicalSkill())}
-                        />
-                        <Button type="button" onClick={addTechnicalSkill} size="sm">
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {form.watch("skills.technical").map((skill, index) => (
-                          <Badge key={index} variant="secondary" className="flex items-center space-x-1">
-                            <span>{skill}</span>
-                            <X 
-                              className="h-3 w-3 cursor-pointer" 
-                              onClick={() => removeTechnicalSkill(skill)}
-                            />
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Soft Skills</label>
-                      <div className="flex space-x-2 mb-2">
-                        <Input
-                          value={newSoftSkill}
-                          onChange={(e) => setNewSoftSkill(e.target.value)}
-                          placeholder="Add soft skill"
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSoftSkill())}
-                        />
-                        <Button type="button" onClick={addSoftSkill} size="sm">
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {form.watch("skills.soft").map((skill, index) => (
-                          <Badge key={index} variant="outline" className="flex items-center space-x-1">
-                            <span>{skill}</span>
-                            <X 
-                              className="h-3 w-3 cursor-pointer" 
-                              onClick={() => removeSoftSkill(skill)}
-                            />
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <ProfessionalTab form={form} />
             </TabsContent>
 
             <TabsContent value="experience" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Target className="h-5 w-5" />
-                    <span>Professional Experience</span>
-                  </CardTitle>
-                  <CardDescription>
-                    Your work experience and achievements
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {form.watch("experience").length > 0 ? (
-                    <div className="space-y-4">
-                      {form.watch("experience").map((exp, index) => (
-                        <div key={index} className="p-4 border rounded-lg">
-                          <h4 className="font-medium">{exp.title}</h4>
-                          <p className="text-gray-600">{exp.company} • {exp.duration}</p>
-                          {exp.highlights.length > 0 && (
-                            <ul className="mt-2 list-disc list-inside text-sm text-gray-700">
-                              {exp.highlights.map((highlight, i) => (
-                                <li key={i}>{highlight}</li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">No experience data available.</p>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Upload a resume or add experience manually in the Documents tab.
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <ExperienceTab form={form} />
             </TabsContent>
 
             <TabsContent value="education" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <GraduationCap className="h-5 w-5" />
-                    <span>Education & Certifications</span>
-                  </CardTitle>
-                  <CardDescription>
-                    Your educational background and professional certifications
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div>
-                    <h4 className="font-medium mb-3">Education</h4>
-                    {form.watch("education").length > 0 ? (
-                      <div className="space-y-3">
-                        {form.watch("education").map((edu, index) => (
-                          <div key={index} className="p-3 border rounded-lg">
-                            <h5 className="font-medium">{edu.degree}</h5>
-                            <p className="text-gray-600">{edu.institution} • {edu.year}</p>
-                            {edu.gpa && <p className="text-sm text-gray-500">GPA: {edu.gpa}</p>}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-gray-500 text-sm">No education data available.</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium mb-3">Certifications</h4>
-                    <div className="flex space-x-2 mb-3">
-                      <Input
-                        value={newCertification}
-                        onChange={(e) => setNewCertification(e.target.value)}
-                        placeholder="Add certification"
-                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCertification())}
-                      />
-                      <Button type="button" onClick={addCertification} size="sm">
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {form.watch("certifications").map((cert, index) => (
-                        <Badge key={index} variant="default" className="flex items-center space-x-1">
-                          <Award className="h-3 w-3" />
-                          <span>{cert}</span>
-                          <X 
-                            className="h-3 w-3 cursor-pointer" 
-                            onClick={() => removeCertification(cert)}
-                          />
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <EducationTab form={form} />
             </TabsContent>
           </Tabs>
 
