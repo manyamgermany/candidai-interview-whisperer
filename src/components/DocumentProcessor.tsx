@@ -147,8 +147,11 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
         }
       } catch (error) {
         console.error('File processing error:', error);
+        // Since processingDoc might not be defined here, let's find the document by name
         setUploadedFiles(prev => 
-          prev.map(doc => doc.id === processingDoc.id ? { ...doc, status: 'error' as const } : doc)
+          prev.map(doc => doc.name === file.name && doc.status === 'processing' 
+            ? { ...doc, status: 'error' as const } 
+            : doc)
         );
         toast({
           title: "Processing Error",
