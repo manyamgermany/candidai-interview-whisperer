@@ -30,6 +30,20 @@ export interface StorageSettings {
   };
 }
 
+export interface SessionData {
+  id: string;
+  timestamp: number;
+  platform: string;
+  duration: number;
+  transcript: string;
+  analytics: {
+    wordsPerMinute: number;
+    fillerWords: number;
+    confidenceScore: number;
+  };
+  suggestions: string[];
+}
+
 const DEFAULT_SETTINGS: StorageSettings = {
   aiProvider: {
     primary: 'openai'
@@ -58,54 +72,125 @@ const DEFAULT_SETTINGS: StorageSettings = {
   }
 };
 
+// Check if we're in a Chrome extension context
+const isExtensionContext = (): boolean => {
+  return typeof window !== 'undefined' && 
+         window.chrome && 
+         window.chrome.storage && 
+         window.chrome.runtime && 
+         window.chrome.runtime.id;
+};
+
 export const chromeStorage = {
   async getSettings(): Promise<StorageSettings> {
-    if (typeof window !== 'undefined' && window.chrome?.storage) {
-      const result = await window.chrome.storage.sync.get('candidai_settings');
-      return result.candidai_settings || DEFAULT_SETTINGS;
+    try {
+      if (isExtensionContext()) {
+        const result = await window.chrome.storage.sync.get('candidai_settings');
+        return result.candidai_settings || DEFAULT_SETTINGS;
+      }
+      
+      // Fallback to localStorage for development/web version
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('candidai_settings');
+        return stored ? JSON.parse(stored) : DEFAULT_SETTINGS;
+      }
+      
+      return DEFAULT_SETTINGS;
+    } catch (error) {
+      console.error('Failed to get settings:', error);
+      return DEFAULT_SETTINGS;
     }
-    // Fallback to localStorage for development
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('candidai_settings');
-      return stored ? JSON.parse(stored) : DEFAULT_SETTINGS;
-    }
-    return DEFAULT_SETTINGS;
   },
 
   async saveSettings(settings: Partial<StorageSettings>): Promise<void> {
-    const currentSettings = await this.getSettings();
-    const updatedSettings = { ...currentSettings, ...settings };
-    
-    if (typeof window !== 'undefined' && window.chrome?.storage) {
-      await window.chrome.storage.sync.set({ candidai_settings: updatedSettings });
-    } else if (typeof window !== 'undefined') {
-      // Fallback to localStorage for development
-      localStorage.setItem('candidai_settings', JSON.stringify(updatedSettings));
+    try {
+      const currentSettings = await this.getSettings();
+      const updatedSettings = { ...currentSettings, ...settings };
+      
+      if (isExtensionContext()) {
+        await window.chrome.storage.sync.set({ candidai_settings: updatedSettings });
+      } else if (typeof window !== 'undefined') {
+        localStorage.setItem('candidai_settings', JSON.stringify(updatedSettings));
+      }
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      throw new Error('Settings could not be saved');
     }
   },
 
-  async getSessionHistory(): Promise<any[]> {
-    if (typeof window !== 'undefined' && window.chrome?.storage) {
-      const result = await window.chrome.storage.local.get('candidai_sessions');
-      return result.candidai_sessions || [];
+  async getSessionHistory(): Promise<SessionData[]> {
+    try {
+      if (isExtensionContext()) {
+        const result = await window.chrome.storage.local.get('candidai_sessions');
+        return result.candidai_sessions || [];
+      }
+      
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('candidai_sessions');
+        return stored ? JSON.parse(stored) : [];
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Failed to get session history:', error);
+      return [];
     }
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('candidai_sessions');
-      return stored ? JSON.parse(stored) : [];
-    }
-    return [];
   },
 
-  async saveSession(session: any): Promise<void> {
-    const sessions = await this.getSessionHistory();
-    sessions.unshift(session);
-    // Keep only last 50 sessions
-    const limitedSessions = sessions.slice(0, 50);
-    
-    if (typeof window !== 'undefined' && window.chrome?.storage) {
-      await window.chrome.storage.local.set({ candidai_sessions: limitedSessions });
-    } else if (typeof window !== 'undefined') {
-      localStorage.setItem('candidai_sessions', JSON.stringify(limitedSessions));
+  async saveSession(session: SessionData): Promise<void> {
+    try {
+      const sessions = await this.getSessionHistory();
+      sessions.unshift(session);
+      
+      // Keep only last 50 sessions to prevent storage bloat
+      const limitedSessions = sessions.slice(0, 50);
+      
+      if (isExtensionContext()) {
+        await window.chrome.storage.local.set({ candidai_sessions: limitedSessions });
+      } else if (typeof window !== 'undefined') {
+        localStorage.setItem('candidai_sessions', JSON.stringify(limitedSessions));
+      }
+    } catch (error) {
+      console.error('Failed to save session:', error);
+      throw new Error('Session could not be saved');
+    }
+  },
+
+  async clearAllData(): Promise<void> {
+    try {
+      if (isExtensionContext()) {
+        await window.chrome.storage.sync.clear();
+        await window.chrome.storage.local.clear();
+      } else if (typeof window !== 'undefined') {
+        localStorage.removeItem('candidai_settings');
+        localStorage.removeItem('candidai_sessions');
+      }
+    } catch (error) {
+      console.error('Failed to clear data:', error);
+      throw new Error('Data could not be cleared');
+    }
+  },
+
+  // Get storage usage information
+  async getStorageInfo(): Promise<{ used: number; total: number }> {
+    try {
+      if (isExtensionContext()) {
+        const usage = await window.chrome.storage.sync.getBytesInUse();
+        return { used: usage, total: 102400 }; // Chrome sync storage limit
+      }
+      
+      // Estimate localStorage usage
+      if (typeof window !== 'undefined') {
+        const settings = localStorage.getItem('candidai_settings') || '';
+        const sessions = localStorage.getItem('candidai_sessions') || '';
+        const used = (settings.length + sessions.length) * 2; // Rough estimate
+        return { used, total: 5242880 }; // 5MB typical localStorage limit
+      }
+      
+      return { used: 0, total: 0 };
+    } catch (error) {
+      console.error('Failed to get storage info:', error);
+      return { used: 0, total: 0 };
     }
   }
 };

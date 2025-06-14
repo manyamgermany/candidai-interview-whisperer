@@ -8,7 +8,8 @@
     "storage",
     "activeTab",
     "scripting",
-    "tabs"
+    "tabs",
+    "background"
   ],
   "host_permissions": [
     "https://meet.google.com/*",
@@ -39,7 +40,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["assets/*"],
+      "resources": ["assets/*", "index.html"],
       "matches": ["<all_urls>"]
     }
   ],

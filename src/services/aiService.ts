@@ -3,33 +3,68 @@ export interface AIResponse {
   suggestion: string;
   confidence: number;
   framework?: string;
+  reasoning?: string;
 }
 
 export interface AIProvider {
   name: string;
   apiKey: string;
   endpoint: string;
+  model: string;
+}
+
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
 }
 
 export class AIService {
   private providers: Map<string, AIProvider> = new Map();
   private currentProvider = 'openai';
+  private requestQueue: Promise<any>[] = [];
+  private maxConcurrentRequests = 3;
 
-  async configure(provider: string, apiKey: string) {
-    const endpoints = {
-      openai: 'https://api.openai.com/v1/chat/completions',
-      claude: 'https://api.anthropic.com/v1/messages',
-      gemini: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent'
+  constructor() {
+    this.setupProviders();
+  }
+
+  private setupProviders() {
+    // Set up default provider configurations
+    const defaultProviders = {
+      openai: {
+        name: 'OpenAI',
+        apiKey: '',
+        endpoint: 'https://api.openai.com/v1/chat/completions',
+        model: 'gpt-4o-mini'
+      },
+      claude: {
+        name: 'Anthropic Claude',
+        apiKey: '',
+        endpoint: 'https://api.anthropic.com/v1/messages',
+        model: 'claude-3-haiku-20240307'
+      },
+      gemini: {
+        name: 'Google Gemini',
+        apiKey: '',
+        endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        model: 'gemini-pro'
+      }
     };
 
-    if (endpoints[provider as keyof typeof endpoints]) {
-      this.providers.set(provider, {
-        name: provider,
-        apiKey,
-        endpoint: endpoints[provider as keyof typeof endpoints]
-      });
-      console.log(`Configured ${provider} provider`);
+    Object.entries(defaultProviders).forEach(([key, provider]) => {
+      this.providers.set(key, provider);
+    });
+  }
+
+  async configure(provider: string, apiKey: string, model?: string) {
+    const existingProvider = this.providers.get(provider);
+    if (existingProvider) {
+      existingProvider.apiKey = apiKey;
+      if (model) existingProvider.model = model;
+      console.log(`Configured ${provider} provider with model ${existingProvider.model}`);
+      return true;
     }
+    return false;
   }
 
   async generateSuggestion(
@@ -37,26 +72,51 @@ export class AIService {
     questionType: string = 'general',
     framework: string = 'star'
   ): Promise<AIResponse> {
-    const provider = this.providers.get(this.currentProvider);
-    if (!provider) {
-      throw new Error(`Provider ${this.currentProvider} not configured`);
+    // Check if we have too many concurrent requests
+    if (this.requestQueue.length >= this.maxConcurrentRequests) {
+      await Promise.race(this.requestQueue);
     }
 
+    const provider = this.providers.get(this.currentProvider);
+    if (!provider || !provider.apiKey) {
+      return this.fallbackResponse(context, framework);
+    }
+
+    const requestPromise = this.makeRequest(provider, context, questionType, framework);
+    this.requestQueue.push(requestPromise);
+
     try {
-      const prompt = this.buildPrompt(context, questionType, framework);
-      
-      if (this.currentProvider === 'openai') {
-        return await this.callOpenAI(provider, prompt);
-      } else if (this.currentProvider === 'claude') {
-        return await this.callClaude(provider, prompt);
-      } else if (this.currentProvider === 'gemini') {
-        return await this.callGemini(provider, prompt);
-      }
-      
-      throw new Error('Unsupported provider');
+      const response = await requestPromise;
+      return response;
     } catch (error) {
       console.error(`AI service error with ${this.currentProvider}:`, error);
-      return await this.fallbackResponse(context, framework);
+      return await this.tryFallbackProviders(context, questionType, framework);
+    } finally {
+      // Remove completed request from queue
+      const index = this.requestQueue.indexOf(requestPromise);
+      if (index > -1) {
+        this.requestQueue.splice(index, 1);
+      }
+    }
+  }
+
+  private async makeRequest(
+    provider: AIProvider,
+    context: string,
+    questionType: string,
+    framework: string
+  ): Promise<AIResponse> {
+    const prompt = this.buildPrompt(context, questionType, framework);
+    
+    switch (provider.name) {
+      case 'OpenAI':
+        return await this.callOpenAI(provider, prompt, framework);
+      case 'Anthropic Claude':
+        return await this.callClaude(provider, prompt, framework);
+      case 'Google Gemini':
+        return await this.callGemini(provider, prompt, framework);
+      default:
+        throw new Error(`Unsupported provider: ${provider.name}`);
     }
   }
 
@@ -64,18 +124,33 @@ export class AIService {
     const frameworks = {
       star: 'Structure your response using STAR method (Situation, Task, Action, Result)',
       soar: 'Use SOAR framework (Situation, Obstacles, Actions, Results)',
-      prep: 'Apply PREP method (Point, Reason, Example, Point)'
+      prep: 'Apply PREP method (Point, Reason, Example, Point)',
+      car: 'Use CAR framework (Challenge, Action, Result)',
+      soal: 'Apply SOAL method (Situation, Objective, Action, Learning)'
     };
 
-    return `As an interview coach, provide a concise suggestion for this interview context:
+    const questionTypes = {
+      behavioral: 'This is a behavioral interview question requiring specific examples',
+      technical: 'This is a technical question requiring clear explanation',
+      situational: 'This is a situational question requiring hypothetical reasoning',
+      general: 'This is a general interview question'
+    };
+
+    return `You are an expert interview coach providing real-time assistance to a candidate.
+
 Context: "${context}"
-Question Type: ${questionType}
+Question Type: ${questionTypes[questionType as keyof typeof questionTypes] || questionTypes.general}
 Framework: ${frameworks[framework as keyof typeof frameworks] || frameworks.star}
 
-Provide a brief, actionable suggestion (max 2 sentences) to help the candidate respond effectively.`;
+Provide a concise, actionable suggestion (1-2 sentences) to help the candidate respond effectively. Focus on:
+1. Key points to mention
+2. Structure for the response
+3. Specific advice for this situation
+
+Be supportive, specific, and immediately actionable. Avoid generic advice.`;
   }
 
-  private async callOpenAI(provider: AIProvider, prompt: string): Promise<AIResponse> {
+  private async callOpenAI(provider: AIProvider, prompt: string, framework: string): Promise<AIResponse> {
     const response = await fetch(provider.endpoint, {
       method: 'POST',
       headers: {
@@ -83,59 +158,186 @@ Provide a brief, actionable suggestion (max 2 sentences) to help the candidate r
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: prompt }],
+        model: provider.model,
+        messages: [
+          { role: 'system', content: 'You are a professional interview coach.' },
+          { role: 'user', content: prompt }
+        ],
         max_tokens: 150,
-        temperature: 0.7
+        temperature: 0.7,
+        top_p: 0.9
       })
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`OpenAI API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
     }
 
     const data = await response.json();
+    const suggestion = data.choices[0]?.message?.content || 'No suggestion available';
+    
     return {
-      suggestion: data.choices[0]?.message?.content || 'No suggestion available',
-      confidence: 85
+      suggestion: suggestion.trim(),
+      confidence: 90,
+      framework,
+      reasoning: 'Generated using OpenAI GPT model'
     };
   }
 
-  private async callClaude(provider: AIProvider, prompt: string): Promise<AIResponse> {
-    // Placeholder for Claude API integration
-    console.log('Claude integration pending');
-    return this.fallbackResponse('', 'star');
+  private async callClaude(provider: AIProvider, prompt: string, framework: string): Promise<AIResponse> {
+    const response = await fetch(provider.endpoint, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${provider.apiKey}`,
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: provider.model,
+        max_tokens: 150,
+        messages: [
+          { role: 'user', content: prompt }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Claude API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+    const suggestion = data.content[0]?.text || 'No suggestion available';
+    
+    return {
+      suggestion: suggestion.trim(),
+      confidence: 88,
+      framework,
+      reasoning: 'Generated using Anthropic Claude'
+    };
   }
 
-  private async callGemini(provider: AIProvider, prompt: string): Promise<AIResponse> {
-    // Placeholder for Gemini API integration
-    console.log('Gemini integration pending');
-    return this.fallbackResponse('', 'star');
+  private async callGemini(provider: AIProvider, prompt: string, framework: string): Promise<AIResponse> {
+    const response = await fetch(`${provider.endpoint}?key=${provider.apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: prompt }]
+        }],
+        generationConfig: {
+          maxOutputTokens: 150,
+          temperature: 0.7
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Gemini API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+    const suggestion = data.candidates[0]?.content?.parts[0]?.text || 'No suggestion available';
+    
+    return {
+      suggestion: suggestion.trim(),
+      confidence: 85,
+      framework,
+      reasoning: 'Generated using Google Gemini'
+    };
   }
 
-  private async fallbackResponse(context: string, framework: string): Promise<AIResponse> {
+  private async tryFallbackProviders(
+    context: string, 
+    questionType: string, 
+    framework: string
+  ): Promise<AIResponse> {
+    const availableProviders = Array.from(this.providers.entries())
+      .filter(([key, provider]) => key !== this.currentProvider && provider.apiKey);
+
+    for (const [key, provider] of availableProviders) {
+      try {
+        console.log(`Trying fallback provider: ${key}`);
+        return await this.makeRequest(provider, context, questionType, framework);
+      } catch (error) {
+        console.error(`Fallback provider ${key} failed:`, error);
+        continue;
+      }
+    }
+
+    // If all providers fail, return fallback response
+    return this.fallbackResponse(context, framework);
+  }
+
+  private fallbackResponse(context: string, framework: string): AIResponse {
     const suggestions = [
-      'Take a moment to structure your response clearly before speaking.',
-      'Consider providing a specific example to illustrate your point.',
-      'Remember to highlight the impact or results of your actions.',
-      'Focus on your role and contributions in the situation you describe.'
+      'Take a moment to structure your response clearly using the STAR method.',
+      'Consider providing a specific example from your experience.',
+      'Focus on quantifiable results and the impact of your actions.',
+      'Remember to highlight your role and contributions clearly.',
+      'Think about the key skills this question is trying to assess.',
+      'Structure your answer with a clear beginning, middle, and end.'
     ];
 
+    const contextKeywords = context.toLowerCase();
+    let suggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+
+    // Try to make it more contextual
+    if (contextKeywords.includes('team') || contextKeywords.includes('collaboration')) {
+      suggestion = 'Highlight your collaboration skills and specific contributions to the team.';
+    } else if (contextKeywords.includes('challenge') || contextKeywords.includes('difficult')) {
+      suggestion = 'Focus on the problem-solving approach and what you learned.';
+    } else if (contextKeywords.includes('leadership') || contextKeywords.includes('lead')) {
+      suggestion = 'Emphasize your leadership style and how you motivated others.';
+    }
+
     return {
-      suggestion: suggestions[Math.floor(Math.random() * suggestions.length)],
+      suggestion,
       confidence: 60,
-      framework
+      framework,
+      reasoning: 'Fallback response - no AI provider available'
     };
   }
 
   setPrimaryProvider(provider: string) {
     if (this.providers.has(provider)) {
       this.currentProvider = provider;
+      console.log(`Primary provider set to: ${provider}`);
     }
   }
 
-  getAvailableProviders(): string[] {
-    return Array.from(this.providers.keys());
+  getAvailableProviders(): Array<{id: string, name: string, configured: boolean}> {
+    return Array.from(this.providers.entries()).map(([id, provider]) => ({
+      id,
+      name: provider.name,
+      configured: !!provider.apiKey
+    }));
+  }
+
+  getCurrentProvider(): string {
+    return this.currentProvider;
+  }
+
+  async testProvider(providerId: string): Promise<boolean> {
+    const provider = this.providers.get(providerId);
+    if (!provider || !provider.apiKey) return false;
+
+    try {
+      const response = await this.makeRequest(
+        provider,
+        'This is a test message',
+        'general',
+        'star'
+      );
+      return response.confidence > 0;
+    } catch (error) {
+      console.error(`Provider test failed for ${providerId}:`, error);
+      return false;
+    }
   }
 }
 
