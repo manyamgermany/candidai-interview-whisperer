@@ -20,27 +20,29 @@ export const DashboardHeader = ({ onNavigate }: DashboardHeaderProps) => {
               size="sm"
               onClick={() => onNavigate("landing")}
               className="text-gray-600 hover:text-pink-600"
+              aria-label="Go back to landing page"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="h-4 w-4 mr-2" aria-hidden="true" />
               Back
             </Button>
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-gradient-to-br from-pink-400 to-rose-500 rounded-full flex items-center justify-center">
-                <Brain className="h-5 w-5 text-white" />
+                <Brain className="h-5 w-5 text-white" aria-hidden="true" />
               </div>
               <div>
                 <h1 className="text-lg font-bold text-gray-900">CandidAI Dashboard</h1>
               </div>
             </div>
           </div>
-          <div className="flex items-center space-x-3">
+          <nav className="flex items-center space-x-3" role="navigation" aria-label="Dashboard navigation">
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => navigate("/profile")}
               className="border-pink-200 text-pink-600 hover:bg-pink-50"
+              aria-label="Go to profile page"
             >
-              <FileText className="h-4 w-4 mr-2" />
+              <FileText className="h-4 w-4 mr-2" aria-hidden="true" />
               Profile
             </Button>
             <Button 
@@ -48,8 +50,9 @@ export const DashboardHeader = ({ onNavigate }: DashboardHeaderProps) => {
               size="sm"
               onClick={() => navigate("/reports")}
               className="border-pink-200 text-pink-600 hover:bg-pink-50"
+              aria-label="Go to analytics reports"
             >
-              <BarChart3 className="h-4 w-4 mr-2" />
+              <BarChart3 className="h-4 w-4 mr-2" aria-hidden="true" />
               Analytics
             </Button>
             <Button 
@@ -57,11 +60,12 @@ export const DashboardHeader = ({ onNavigate }: DashboardHeaderProps) => {
               size="sm"
               onClick={() => onNavigate("settings")}
               className="border-pink-200 text-pink-600 hover:bg-pink-50"
+              aria-label="Go to settings page"
             >
-              <Settings className="h-4 w-4 mr-2" />
+              <Settings className="h-4 w-4 mr-2" aria-hidden="true" />
               Settings
             </Button>
-          </div>
+          </nav>
         </div>
       </div>
     </header>
