@@ -1,224 +1,202 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { BarChart3, TrendingUp, Calendar, Users, Target, Download } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { PerformanceReport } from "@/types/interviewTypes";
-import { BarChart3, Clock, Star, Target, TrendingUp, CheckCircle } from "lucide-react";
+import { SessionHistory } from "./SessionHistory";
+import { RecentSessions } from "./RecentSessions";
 
 interface PerformanceReportsProps {
-  latestReport: PerformanceReport | null;
+  latestReport?: PerformanceReport | null;
 }
 
 export const PerformanceReports = ({ latestReport }: PerformanceReportsProps) => {
-  if (!latestReport) {
-    return (
-      <div className="space-y-6">
-        <div className="text-center py-12">
-          <BarChart3 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Performance Reports Yet</h3>
-          <p className="text-gray-500">Complete a session to generate your first performance report.</p>
-        </div>
-      </div>
-    );
-  }
+  const [activeTab, setActiveTab] = useState("overview");
+  const { toast } = useToast();
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
+  const handleExportReport = () => {
+    if (latestReport) {
+      const dataStr = JSON.stringify(latestReport, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `performance-report-${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } else {
+      toast({
+        title: "No Report Available",
+        description: "Complete a session first to generate a performance report.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const getScoreBackground = (score: number) => {
-    if (score >= 80) return "bg-green-100";
-    if (score >= 60) return "bg-yellow-100";
-    return "bg-red-100";
+  const mockMetrics = {
+    averageScore: 87,
+    totalSessions: 15,
+    improvementRate: 12,
+    weeklyGoal: 20
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card className="border-pink-100">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-3">
-            <div className="p-2 bg-gradient-to-br from-pink-100 to-rose-100 rounded-lg text-pink-600">
-              <BarChart3 className="h-5 w-5" />
-            </div>
-            <span>Performance Analysis</span>
-            <Badge className="bg-blue-100 text-blue-700 border-blue-200">
-              {latestReport.interviewType.charAt(0).toUpperCase() + latestReport.interviewType.slice(1)}
-            </Badge>
-          </CardTitle>
-          <CardDescription>
-            Detailed analysis from your {new Date(latestReport.timestamp).toLocaleDateString()} session
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <Clock className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <div className="text-2xl font-bold">{Math.round(latestReport.duration)}m</div>
-              <div className="text-sm text-gray-500">Duration</div>
-            </div>
-            <div className="text-center">
-              <Target className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <div className="text-2xl font-bold">{latestReport.industry}</div>
-              <div className="text-sm text-gray-500">Industry</div>
-            </div>
-            <div className="text-center">
-              <Star className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <div className={`text-2xl font-bold ${getScoreColor(latestReport.metrics.overallScore)}`}>
-                {latestReport.metrics.overallScore}%
-              </div>
-              <div className="text-sm text-gray-500">Overall Score</div>
-            </div>
-            <div className="text-center">
-              <TrendingUp className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-blue-600">{latestReport.recommendations.length}</div>
-              <div className="text-sm text-gray-500">Recommendations</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Performance Metrics */}
-      <Card className="border-pink-100">
-        <CardHeader>
-          <CardTitle>Performance Metrics</CardTitle>
-          <CardDescription>Detailed breakdown of your interview performance</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            {Object.entries(latestReport.metrics).map(([key, value]) => {
-              if (key === 'overallScore') return null;
-              const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-              return (
-                <div key={key} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium">{label}</span>
-                    <span className={`font-bold ${getScoreColor(value)}`}>{value}%</span>
-                  </div>
-                  <Progress value={value} className="h-2" />
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Detailed Analytics */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card className="border-pink-100">
-          <CardHeader>
-            <CardTitle>Speaking Analysis</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-medium mb-2">Speaking Pace</h4>
-              <div className="flex justify-between">
-                <span>{latestReport.analytics.speakingPace.wordsPerMinute} WPM</span>
-                <Badge className={latestReport.analytics.speakingPace.optimal ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}>
-                  {latestReport.analytics.speakingPace.optimal ? "Optimal" : "Needs Work"}
-                </Badge>
-              </div>
-              <p className="text-sm text-gray-600 mt-2">{latestReport.analytics.speakingPace.recommendation}</p>
-            </div>
-
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-medium mb-2">Filler Words</h4>
-              <div className="flex justify-between">
-                <span>{latestReport.analytics.fillerWords.count} words ({latestReport.analytics.fillerWords.percentage.toFixed(1)}%)</span>
-              </div>
-              <p className="text-sm text-gray-600 mt-2">{latestReport.analytics.fillerWords.recommendation}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-pink-100">
-          <CardHeader>
-            <CardTitle>Content Quality</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-medium mb-2">Response Structure</h4>
-              <div className="flex justify-between">
-                <span>Framework Usage</span>
-                <Badge className={latestReport.analytics.responseStructure.usedFramework ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}>
-                  {latestReport.analytics.responseStructure.usedFramework ? "Used" : "Not Used"}
-                </Badge>
-              </div>
-              <p className="text-sm text-gray-600 mt-2">{latestReport.analytics.responseStructure.recommendation}</p>
-            </div>
-
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-medium mb-2">Content Relevance</h4>
-              <Progress value={latestReport.analytics.contentQuality.relevance} className="h-2 mb-2" />
-              <p className="text-sm text-gray-600">{latestReport.analytics.contentQuality.recommendation}</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Performance Reports</h1>
+          <p className="text-gray-600">Track your progress and analyze your performance</p>
+        </div>
+        <Button 
+          variant="outline" 
+          className="border-pink-200 text-pink-700 hover:bg-pink-50"
+          onClick={handleExportReport}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export Report
+        </Button>
       </div>
 
-      {/* Recommendations & Next Steps */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card className="border-pink-100">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Target className="h-5 w-5" />
-              <span>Recommendations</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {latestReport.recommendations.map((recommendation, index) => (
-                <div key={index} className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
-                  <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">{recommendation}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="history">Session History</TabsTrigger>
+          <TabsTrigger value="recent">Recent Sessions</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        </TabsList>
 
-        <Card className="border-pink-100">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <TrendingUp className="h-5 w-5" />
-              <span>Next Steps</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {latestReport.nextSteps.map((step, index) => (
-                <div key={index} className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
-                  <div className="w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0">
-                    {index + 1}
+        <TabsContent value="overview" className="space-y-6">
+          {/* Key Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card className="border-pink-100">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Average Score</p>
+                    <p className="text-2xl font-bold text-gray-900">{mockMetrics.averageScore}%</p>
                   </div>
-                  <span className="text-sm">{step}</span>
+                  <BarChart3 className="h-8 w-8 text-pink-600" />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              </CardContent>
+            </Card>
 
-      {/* Strengths */}
-      {latestReport.analytics.strengths.length > 0 && (
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader>
-            <CardTitle className="text-green-800">Your Strengths</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-3">
-              {latestReport.analytics.strengths.map((strength, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span className="text-sm text-green-800">{strength}</span>
+            <Card className="border-green-100">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Sessions</p>
+                    <p className="text-2xl font-bold text-gray-900">{mockMetrics.totalSessions}</p>
+                  </div>
+                  <Calendar className="h-8 w-8 text-green-600" />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-blue-100">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Improvement</p>
+                    <p className="text-2xl font-bold text-gray-900">+{mockMetrics.improvementRate}%</p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-purple-100">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Weekly Goal</p>
+                    <p className="text-2xl font-bold text-gray-900">{mockMetrics.weeklyGoal}</p>
+                  </div>
+                  <Target className="h-8 w-8 text-purple-600" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Latest Report */}
+          {latestReport && (
+            <Card className="border-pink-100">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <BarChart3 className="h-5 w-5 text-pink-600" />
+                  <span>Latest Performance Report</span>
+                  <Badge className="bg-green-100 text-green-700 border-green-200">
+                    New
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Generated on {new Date(latestReport.generatedAt).toLocaleDateString()}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">Overall Score</p>
+                    <p className="text-2xl font-bold text-gray-900">{latestReport.overallScore}%</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">Communication</p>
+                    <p className="text-2xl font-bold text-blue-600">{latestReport.communicationScore}%</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">Technical</p>
+                    <p className="text-2xl font-bold text-green-600">{latestReport.technicalScore}%</p>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <h4 className="font-medium text-gray-900 mb-2">Key Improvements</h4>
+                  <ul className="space-y-1">
+                    {latestReport.suggestions.slice(0, 3).map((suggestion, index) => (
+                      <li key={index} className="text-sm text-gray-600">• {suggestion}</li>
+                    ))}
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="history">
+          <SessionHistory />
+        </TabsContent>
+
+        <TabsContent value="recent">
+          <RecentSessions />
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <Card className="border-pink-100">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <BarChart3 className="h-5 w-5 text-pink-600" />
+                <span>Detailed Analytics</span>
+              </CardTitle>
+              <CardDescription>
+                Advanced performance metrics and trends
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-12">
+                <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Advanced Analytics</h3>
+                <p className="text-gray-600">
+                  Detailed analytics and trends will be available here
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -43,16 +43,7 @@ export const Sidebar = ({ onNavigate, onViewChange }: SidebarProps) => {
             className="w-full justify-start border-green-200 text-green-700 hover:bg-green-50"
           >
             <BarChart3 className="h-4 w-4 mr-3" />
-            Performance Reports
-          </Button>
-
-          <Button
-            onClick={() => onViewChange('history')}
-            variant="outline"
-            className="w-full justify-start border-purple-200 text-purple-700 hover:bg-purple-50"
-          >
-            <History className="h-4 w-4 mr-3" />
-            Session History
+            Performance & History
           </Button>
 
           <Button
@@ -75,25 +66,25 @@ export const Sidebar = ({ onNavigate, onViewChange }: SidebarProps) => {
         </CardContent>
       </Card>
 
-      {/* AI Features Status */}
+      {/* AI Status Summary */}
       <Card className="border-pink-100">
         <CardHeader>
-          <CardTitle className="text-lg">AI Features</CardTitle>
-          <CardDescription>Current AI capabilities status</CardDescription>
+          <CardTitle className="text-lg">System Status</CardTitle>
+          <CardDescription>Current system capabilities</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm">Personalized Responses</span>
+            <span className="text-sm">AI Assistance</span>
+            <Badge className="bg-green-100 text-green-700 border-green-200">Ready</Badge>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Speech Analysis</span>
             <Badge className="bg-green-100 text-green-700 border-green-200">Active</Badge>
           </div>
           
           <div className="flex items-center justify-between">
-            <span className="text-sm">Industry-Specific Models</span>
-            <Badge className="bg-green-100 text-green-700 border-green-200">Active</Badge>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Performance Scoring</span>
+            <span className="text-sm">Performance Tracking</span>
             <Badge className="bg-green-100 text-green-700 border-green-200">Active</Badge>
           </div>
           
@@ -104,7 +95,7 @@ export const Sidebar = ({ onNavigate, onViewChange }: SidebarProps) => {
         </CardContent>
       </Card>
 
-      {/* Tips */}
+      {/* Pro Tips */}
       <Card className="bg-gradient-to-br from-pink-50 to-rose-50 border-pink-100">
         <CardHeader>
           <CardTitle className="text-lg flex items-center space-x-2">
@@ -124,8 +115,8 @@ export const Sidebar = ({ onNavigate, onViewChange }: SidebarProps) => {
           </div>
           
           <div className="text-sm">
-            <p className="font-medium text-pink-800 mb-1">Review Reports</p>
-            <p className="text-pink-700">Check performance reports to track your progress.</p>
+            <p className="font-medium text-pink-800 mb-1">Review Performance</p>
+            <p className="text-pink-700">Check reports to track your progress over time.</p>
           </div>
         </CardContent>
       </Card>

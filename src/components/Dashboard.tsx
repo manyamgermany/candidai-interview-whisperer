@@ -177,12 +177,6 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
             {sessionActive && transcript && (
               <TranscriptDisplay transcript={transcript} />
             )}
-
-            {/* Session History */}
-            {!sessionActive && <SessionHistory />}
-
-            {/* Recent Sessions */}
-            <RecentSessions />
           </div>
 
           {/* Sidebar */}
