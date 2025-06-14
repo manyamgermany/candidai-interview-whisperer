@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { SpeechAnalytics } from "@/services/speechService";
 import { AIResponse } from "@/services/aiService";
@@ -143,35 +142,38 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
     );
   }
 
-  // Main dashboard view - clean and minimalistic with proper bottom alignment
+  // Main dashboard view - AI Assistant takes 3/4 of space
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50 flex flex-col">
       <DashboardHeader onNavigate={onNavigate} />
 
       <div className="flex-1 flex flex-col">
-        <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 flex flex-col flex-1">
-          {/* Session Control - Buttons at top */}
-          <div className="mb-8 flex-shrink-0">
-            <SessionControl
-              onSessionChange={setSessionActive}
-              onTranscriptChange={setTranscript}
-              onAnalyticsChange={setAnalytics}
-              onAISuggestionChange={setAiSuggestion}
-              onPerformanceReportGenerated={handlePerformanceReport}
-            />
+        <div className="max-w-4xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 flex flex-col flex-1">
+          {/* Top section - 1/4 of space - Compact layout */}
+          <div className="h-1/4 min-h-[200px] max-h-[300px] flex flex-col space-y-3 mb-4">
+            {/* Session Control - More compact */}
+            <div className="flex-shrink-0">
+              <SessionControl
+                onSessionChange={setSessionActive}
+                onTranscriptChange={setTranscript}
+                onAnalyticsChange={setAnalytics}
+                onAISuggestionChange={setAiSuggestion}
+                onPerformanceReportGenerated={handlePerformanceReport}
+              />
+            </div>
+
+            {/* Real-time Coaching - Compact version */}
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <RealTimeCoaching 
+                analytics={analytics}
+                transcript={transcript}
+                sessionActive={sessionActive}
+              />
+            </div>
           </div>
 
-          {/* Real-time Coaching */}
-          <div className="mb-6 flex-shrink-0">
-            <RealTimeCoaching 
-              analytics={analytics}
-              transcript={transcript}
-              sessionActive={sessionActive}
-            />
-          </div>
-
-          {/* AI Assistant - Stretches to fill available space */}
-          <div className="flex-1 mb-6 min-h-0">
+          {/* AI Assistant - 3/4 of space */}
+          <div className="flex-1 min-h-0 mb-4" style={{ minHeight: '60vh' }}>
             <AIAssistant 
               sessionActive={sessionActive}
               aiSuggestion={aiSuggestion}
@@ -182,7 +184,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
           </div>
 
           {/* Chat Input - Fixed at bottom */}
-          <div className="flex-shrink-0 border-t border-pink-100 pt-4">
+          <div className="flex-shrink-0 border-t border-pink-100 pt-3">
             <ChatInput 
               onMessagesUpdate={setChatMessages}
               onLoadingChange={setIsChatLoading}
