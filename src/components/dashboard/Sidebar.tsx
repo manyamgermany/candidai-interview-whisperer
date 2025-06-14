@@ -1,4 +1,3 @@
-
 import { memo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScreenshotAnalyzer } from "./ScreenshotAnalyzer";
