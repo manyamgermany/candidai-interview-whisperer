@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DocumentAnalysis } from "@/types/documentTypes";
 import PersonalInfoTab from "./PersonalInfoTab";
 import ProfessionalTab from "./ProfessionalTab";
+import ProjectsTab from "./ProjectsTab";
 import ExperienceTab from "./ExperienceTab";
 import EducationTab from "./EducationTab";
 
@@ -43,6 +44,15 @@ const profileSchema = z.object({
     gpa: z.string().optional(),
   })),
   certifications: z.array(z.string()),
+  projects: z.array(z.object({
+    name: z.string(),
+    description: z.string(),
+    role: z.string(),
+    duration: z.string(),
+    url: z.string().optional(),
+    technologies: z.array(z.string()),
+    achievements: z.array(z.string()),
+  })),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -78,7 +88,7 @@ const ProfileManager = ({ initialData, onNavigate, onProfileUpdate }: ProfileMan
       experience: [],
       education: [],
       certifications: [],
-      projects: [], // Add projects to default values
+      projects: [],
     },
   });
 
