@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,8 +6,10 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { chromeStorage } from "@/utils/chromeStorage";
+import { aiService } from "@/services/aiService";
 import { 
   ArrowLeft, 
   Settings, 
@@ -26,7 +27,9 @@ import {
   RotateCcw,
   CheckCircle,
   AlertCircle,
-  Key
+  Key,
+  TestTube,
+  Loader2
 } from "lucide-react";
 
 interface SettingsPanelProps {
@@ -52,6 +55,21 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
     claude: '',
     gemini: ''
   });
+  const [selectedModels, setSelectedModels] = useState({
+    openai: 'gpt-4o-mini',
+    claude: 'claude-3-haiku-20240307',
+    gemini: 'gemini-pro'
+  });
+  const [testingConnections, setTestingConnections] = useState({
+    openai: false,
+    claude: false,
+    gemini: false
+  });
+  const [connectionStatus, setConnectionStatus] = useState({
+    openai: 'untested' as 'untested' | 'connected' | 'failed',
+    claude: 'untested' as 'untested' | 'connected' | 'failed',
+    gemini: 'untested' as 'untested' | 'connected' | 'failed'
+  });
 
   // Load settings on mount
   useEffect(() => {
@@ -66,7 +84,15 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
         setResponseStyle(settings.responseStyle?.tone || "professional");
         setRealTimeAssistance(settings.coaching?.enableRealtime ?? true);
         setAudioFeedback(settings.audio?.noiseReduction ?? false);
-        // Set other loaded values
+        
+        // Load API keys
+        if (settings.aiProvider) {
+          setApiKeys({
+            openai: settings.aiProvider.openaiKey || '',
+            claude: settings.aiProvider.claudeKey || '',
+            gemini: settings.aiProvider.geminiKey || ''
+          });
+        }
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -80,7 +106,8 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
           primary: aiProvider,
           openaiKey: apiKeys.openai,
           claudeKey: apiKeys.claude,
-          geminiKey: apiKeys.gemini
+          geminiKey: apiKeys.gemini,
+          models: selectedModels
         },
         responseStyle: {
           tone: responseStyle,
@@ -107,6 +134,11 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
       };
 
       await chromeStorage.saveSettings(settings);
+      
+      // Configure AI service with new settings
+      await aiService.configure(aiProvider, apiKeys[aiProvider as keyof typeof apiKeys], selectedModels[aiProvider as keyof typeof selectedModels]);
+      aiService.setPrimaryProvider(aiProvider);
+      
       toast({
         title: "Settings Saved",
         description: "Your preferences have been successfully saved.",
@@ -118,6 +150,48 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
         description: "Failed to save settings. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const testConnection = async (provider: string) => {
+    const apiKey = apiKeys[provider as keyof typeof apiKeys];
+    if (!apiKey) {
+      toast({
+        title: "API Key Required",
+        description: `Please enter an API key for ${provider} before testing.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setTestingConnections(prev => ({ ...prev, [provider]: true }));
+    
+    try {
+      // Configure the provider temporarily for testing
+      await aiService.configure(provider, apiKey, selectedModels[provider as keyof typeof selectedModels]);
+      const isWorking = await aiService.testProvider(provider);
+      
+      setConnectionStatus(prev => ({
+        ...prev,
+        [provider]: isWorking ? 'connected' : 'failed'
+      }));
+      
+      toast({
+        title: isWorking ? "Connection Successful" : "Connection Failed",
+        description: isWorking 
+          ? `Successfully connected to ${provider}` 
+          : `Failed to connect to ${provider}. Please check your API key.`,
+        variant: isWorking ? "default" : "destructive",
+      });
+    } catch (error) {
+      setConnectionStatus(prev => ({ ...prev, [provider]: 'failed' }));
+      toast({
+        title: "Connection Failed",
+        description: `Error testing ${provider}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+      });
+    } finally {
+      setTestingConnections(prev => ({ ...prev, [provider]: false }));
     }
   };
 
@@ -135,6 +209,12 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
     setAnonymousAnalytics(false);
     setSessionRecording(true);
     setApiKeys({ openai: '', claude: '', gemini: '' });
+    setSelectedModels({
+      openai: 'gpt-4o-mini',
+      claude: 'claude-3-haiku-20240307',
+      gemini: 'gemini-pro'
+    });
+    setConnectionStatus({ openai: 'untested', claude: 'untested', gemini: 'untested' });
     
     toast({
       title: "Settings Reset",
@@ -156,6 +236,7 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
       localDataProcessing,
       anonymousAnalytics,
       sessionRecording,
+      selectedModels,
       exportedAt: new Date().toISOString()
     };
     
@@ -192,6 +273,7 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
         if (settings.audioFeedback !== undefined) setAudioFeedback(settings.audioFeedback);
         if (settings.confidenceThreshold !== undefined) setConfidenceThreshold([settings.confidenceThreshold]);
         if (settings.fillerWordSensitivity !== undefined) setFillerWordSensitivity([settings.fillerWordSensitivity]);
+        if (settings.selectedModels) setSelectedModels(settings.selectedModels);
         
         toast({
           title: "Settings Imported",
@@ -212,23 +294,37 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
     { 
       id: "openai", 
       name: "OpenAI GPT-4", 
-      status: apiKeys.openai ? "connected" : "available", 
+      status: connectionStatus.openai === 'connected' ? "connected" : connectionStatus.openai === 'failed' ? "failed" : "available", 
       reliability: 98,
-      description: "Most reliable for conversational AI and structured responses"
+      description: "Most reliable for conversational AI and structured responses",
+      models: [
+        { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Fast and efficient' },
+        { id: 'gpt-4o', name: 'GPT-4o', description: 'Most capable model' },
+        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'High performance' }
+      ]
     },
     { 
       id: "claude", 
       name: "Anthropic Claude", 
-      status: apiKeys.claude ? "connected" : "available", 
+      status: connectionStatus.claude === 'connected' ? "connected" : connectionStatus.claude === 'failed' ? "failed" : "available", 
       reliability: 95,
-      description: "Excellent for analytical and detailed responses"
+      description: "Excellent for analytical and detailed responses",
+      models: [
+        { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku', description: 'Fast and economical' },
+        { id: 'claude-3-sonnet-20240229', name: 'Claude 3 Sonnet', description: 'Balanced performance' },
+        { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus', description: 'Most powerful' }
+      ]
     },
     { 
       id: "gemini", 
       name: "Google Gemini", 
-      status: apiKeys.gemini ? "connected" : "available", 
+      status: connectionStatus.gemini === 'connected' ? "connected" : connectionStatus.gemini === 'failed' ? "failed" : "available", 
       reliability: 92,
-      description: "Strong multimodal capabilities and reasoning"
+      description: "Strong multimodal capabilities and reasoning",
+      models: [
+        { id: 'gemini-pro', name: 'Gemini Pro', description: 'Optimized for text' },
+        { id: 'gemini-pro-vision', name: 'Gemini Pro Vision', description: 'Multimodal capabilities' }
+      ]
     }
   ];
 
@@ -311,28 +407,69 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {aiProviders.map((provider) => (
-                    <div key={provider.id} className="flex items-center justify-between p-4 border border-pink-100 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="radio"
-                          id={provider.id}
-                          name="aiProvider"
-                          value={provider.id}
-                          checked={aiProvider === provider.id}
-                          onChange={(e) => setAiProvider(e.target.value)}
-                          className="w-4 h-4 text-pink-600"
-                        />
-                        <div className="flex-1">
-                          <label htmlFor={provider.id} className="font-medium text-gray-900 cursor-pointer">
-                            {provider.name}
-                          </label>
-                          <p className="text-sm text-gray-500">{provider.description}</p>
-                          <div className="mt-2">
-                            <Label htmlFor={`${provider.id}-key`} className="text-xs text-gray-500">
-                              API Key
-                            </Label>
+                    <div key={provider.id} className="border border-pink-100 rounded-lg overflow-hidden">
+                      <div className="flex items-center justify-between p-4">
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="radio"
+                            id={provider.id}
+                            name="aiProvider"
+                            value={provider.id}
+                            checked={aiProvider === provider.id}
+                            onChange={(e) => setAiProvider(e.target.value)}
+                            className="w-4 h-4 text-pink-600"
+                          />
+                          <div className="flex-1">
+                            <label htmlFor={provider.id} className="font-medium text-gray-900 cursor-pointer">
+                              {provider.name}
+                            </label>
+                            <p className="text-sm text-gray-500">{provider.description}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <div className="text-right">
+                            <div className="text-sm font-medium">{provider.reliability}%</div>
+                            <div className="text-xs text-gray-500">Reliability</div>
+                          </div>
+                          <Badge 
+                            variant="secondary" 
+                            className={`${
+                              provider.status === 'connected' 
+                                ? 'bg-green-100 text-green-700 border-green-200' 
+                                : provider.status === 'failed'
+                                ? 'bg-red-100 text-red-700 border-red-200'
+                                : 'bg-blue-100 text-blue-700 border-blue-200'
+                            }`}
+                          >
+                            {provider.status === 'connected' ? (
+                              <>
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Connected
+                              </>
+                            ) : provider.status === 'failed' ? (
+                              <>
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                Failed
+                              </>
+                            ) : (
+                              <>
+                                <Key className="h-3 w-3 mr-1" />
+                                Available
+                              </>
+                            )}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="px-4 pb-4 space-y-4 bg-gray-50">
+                        {/* API Key Input */}
+                        <div>
+                          <Label htmlFor={`${provider.id}-key`} className="text-sm text-gray-700 font-medium">
+                            API Key
+                          </Label>
+                          <div className="flex space-x-2 mt-1">
                             <Input
                               id={`${provider.id}-key`}
                               type="password"
@@ -342,36 +479,51 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                                 ...prev,
                                 [provider.id]: e.target.value
                               }))}
-                              className="mt-1 text-xs"
+                              className="flex-1"
                             />
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => testConnection(provider.id)}
+                              disabled={testingConnections[provider.id as keyof typeof testingConnections] || !apiKeys[provider.id as keyof typeof apiKeys]}
+                              className="border-pink-200 text-pink-600 hover:bg-pink-50"
+                            >
+                              {testingConnections[provider.id as keyof typeof testingConnections] ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <TestTube className="h-4 w-4" />
+                              )}
+                            </Button>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <div className="text-right">
-                          <div className="text-sm font-medium">{provider.reliability}%</div>
-                          <div className="text-xs text-gray-500">Reliability</div>
+                        
+                        {/* Model Selection */}
+                        <div>
+                          <Label htmlFor={`${provider.id}-model`} className="text-sm text-gray-700 font-medium">
+                            Model Selection
+                          </Label>
+                          <Select
+                            value={selectedModels[provider.id as keyof typeof selectedModels]}
+                            onValueChange={(value) => setSelectedModels(prev => ({
+                              ...prev,
+                              [provider.id]: value
+                            }))}
+                          >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue placeholder="Select model..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {provider.models.map((model) => (
+                                <SelectItem key={model.id} value={model.id}>
+                                  <div>
+                                    <div className="font-medium">{model.name}</div>
+                                    <div className="text-xs text-gray-500">{model.description}</div>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <Badge 
-                          variant="secondary" 
-                          className={`${
-                            provider.status === 'connected' 
-                              ? 'bg-green-100 text-green-700 border-green-200' 
-                              : 'bg-blue-100 text-blue-700 border-blue-200'
-                          }`}
-                        >
-                          {provider.status === 'connected' ? (
-                            <>
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Connected
-                            </>
-                          ) : (
-                            <>
-                              <Key className="h-3 w-3 mr-1" />
-                              Available
-                            </>
-                          )}
-                        </Badge>
                       </div>
                     </div>
                   ))}
@@ -604,33 +756,24 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-2 h-2 rounded-full ${apiKeys.openai ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                      <span className="text-sm">OpenAI API</span>
+                  {aiProviders.map((provider) => (
+                    <div key={provider.id} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-2 h-2 rounded-full ${
+                          connectionStatus[provider.id as keyof typeof connectionStatus] === 'connected' ? 'bg-green-500' : 
+                          connectionStatus[provider.id as keyof typeof connectionStatus] === 'failed' ? 'bg-red-500' : 'bg-gray-400'
+                        }`}></div>
+                        <span className="text-sm">{provider.name}</span>
+                      </div>
+                      <Badge variant="secondary" className={`${
+                        connectionStatus[provider.id as keyof typeof connectionStatus] === 'connected' ? 'bg-green-100 text-green-700 border-green-200' : 
+                        connectionStatus[provider.id as keyof typeof connectionStatus] === 'failed' ? 'bg-red-100 text-red-700 border-red-200' : 'bg-gray-100 text-gray-700 border-gray-200'
+                      } text-xs`}>
+                        {connectionStatus[provider.id as keyof typeof connectionStatus] === 'connected' ? 'Connected' : 
+                         connectionStatus[provider.id as keyof typeof connectionStatus] === 'failed' ? 'Failed' : 'Inactive'}
+                      </Badge>
                     </div>
-                    <Badge variant="secondary" className={`${apiKeys.openai ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-700 border-gray-200'} text-xs`}>
-                      {apiKeys.openai ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                      <span className="text-sm">Speech API</span>
-                    </div>
-                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs">
-                      Limited
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm">Analytics</span>
-                    </div>
-                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 text-xs">
-                      Active
-                    </Badge>
-                  </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
