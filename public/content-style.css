@@ -1,0 +1,14 @@
+
+/* CandidAI Content Script Styles */
+#candidai-widget {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+#candidai-widget:hover {
+  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4) !important;
+}
+
+/* Ensure widget stays on top */
+#candidai-widget {
+  z-index: 2147483647 !important;
+}

@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +18,9 @@ import {
   TrendingUp,
   Users
 } from "lucide-react";
+import { speechService, SpeechAnalytics } from "@/services/speechService";
+import { aiService, AIResponse } from "@/services/aiService";
+import { chromeStorage } from "@/utils/chromeStorage";
 
 interface DashboardProps {
   onNavigate: (tab: string) => void;
@@ -27,6 +29,15 @@ interface DashboardProps {
 const Dashboard = ({ onNavigate }: DashboardProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [sessionActive, setSessionActive] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [analytics, setAnalytics] = useState<SpeechAnalytics>({
+    wordsPerMinute: 0,
+    fillerWords: 0,
+    pauseDuration: 0,
+    confidenceScore: 0
+  });
+  const [aiSuggestion, setAiSuggestion] = useState<AIResponse | null>(null);
+  const [sessionDuration, setSessionDuration] = useState("00:00");
 
   const sessionStats = {
     duration: "12:34",
@@ -47,6 +58,89 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
     { name: "Anthropic Claude", status: "standby", reliability: 95 },
     { name: "Google Gemini", status: "standby", reliability: 92 }
   ];
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (sessionActive) {
+      const startTime = Date.now();
+      interval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const minutes = Math.floor(elapsed / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        setSessionDuration(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [sessionActive]);
+
+  const handleStartSession = async () => {
+    if (!sessionActive) {
+      setSessionActive(true);
+      setIsRecording(true);
+      
+      // Load AI configuration
+      const settings = await chromeStorage.getSettings();
+      if (settings.aiProvider.openaiKey) {
+        await aiService.configure('openai', settings.aiProvider.openaiKey);
+      }
+
+      // Start speech recognition
+      speechService.startListening({
+        onTranscript: (text) => {
+          setTranscript(text);
+          // Generate AI suggestion for recent speech
+          const recentText = text.split(' ').slice(-20).join(' ');
+          if (recentText.length > 10) {
+            generateAISuggestion(recentText);
+          }
+        },
+        onAnalytics: (newAnalytics) => {
+          setAnalytics(newAnalytics);
+        },
+        onError: (error) => {
+          console.error('Speech recognition error:', error);
+        }
+      });
+    } else {
+      setSessionActive(false);
+      setIsRecording(false);
+      speechService.stopListening();
+      
+      // Save session data
+      const sessionData = {
+        id: Date.now(),
+        type: "Live Interview",
+        duration: sessionDuration,
+        transcript,
+        analytics,
+        date: new Date().toISOString().split('T')[0]
+      };
+      await chromeStorage.saveSession(sessionData);
+    }
+  };
+
+  const generateAISuggestion = async (text: string) => {
+    try {
+      const suggestion = await aiService.generateSuggestion(text, 'behavioral', 'star');
+      setAiSuggestion(suggestion);
+    } catch (error) {
+      console.error('AI suggestion error:', error);
+    }
+  };
+
+  const toggleRecording = () => {
+    if (sessionActive) {
+      if (isRecording) {
+        speechService.stopListening();
+      } else {
+        speechService.startListening({
+          onTranscript: setTranscript,
+          onAnalytics: setAnalytics
+        });
+      }
+      setIsRecording(!isRecording);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50">
@@ -130,10 +224,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
               <div className="flex items-center space-x-4">
                 <Button
                   size="lg"
-                  onClick={() => {
-                    setSessionActive(!sessionActive);
-                    setIsRecording(!isRecording);
-                  }}
+                  onClick={handleStartSession}
                   className={`${
                     sessionActive 
                       ? "bg-red-500 hover:bg-red-600" 
@@ -154,7 +245,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => setIsRecording(!isRecording)}
+                  onClick={toggleRecording}
                   disabled={!sessionActive}
                   className="border-pink-200 text-pink-600 hover:bg-pink-50"
                 >
@@ -175,11 +266,13 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
                 <div className="flex items-center space-x-6 text-sm">
                   <div className="flex items-center space-x-2">
                     <Clock className="h-4 w-4 text-gray-500" />
-                    <span className="font-mono">{sessionStats.duration}</span>
+                    <span className="font-mono">{sessionDuration}</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-green-600">Recording</span>
+                    <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                    <span className={isRecording ? 'text-green-600' : 'text-gray-500'}>
+                      {isRecording ? 'Recording' : 'Paused'}
+                    </span>
                   </div>
                 </div>
               )}
@@ -199,24 +292,30 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-pink-600">{sessionStats.wordsPerMinute}</div>
+                      <div className="text-2xl font-bold text-pink-600">{analytics.wordsPerMinute}</div>
                       <div className="text-sm text-gray-500">WPM</div>
-                      <div className="text-xs text-green-600">Optimal Range</div>
+                      <div className="text-xs text-green-600">
+                        {analytics.wordsPerMinute >= 120 && analytics.wordsPerMinute <= 150 ? 'Optimal' : 'Adjust Pace'}
+                      </div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-orange-600">{sessionStats.fillerWords}</div>
+                      <div className="text-2xl font-bold text-orange-600">{analytics.fillerWords}</div>
                       <div className="text-sm text-gray-500">Filler Words</div>
-                      <div className="text-xs text-orange-600">Monitor Usage</div>
+                      <div className="text-xs text-orange-600">
+                        {analytics.fillerWords < 5 ? 'Good' : 'Monitor Usage'}
+                      </div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{sessionStats.confidenceScore}%</div>
+                      <div className="text-2xl font-bold text-blue-600">{analytics.confidenceScore}%</div>
                       <div className="text-sm text-gray-500">Confidence</div>
-                      <div className="text-xs text-blue-600">Strong</div>
+                      <div className="text-xs text-blue-600">
+                        {analytics.confidenceScore > 80 ? 'Strong' : 'Building'}
+                      </div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-purple-600">{sessionStats.questionsAnswered}</div>
-                      <div className="text-sm text-gray-500">Questions</div>
-                      <div className="text-xs text-purple-600">Answered</div>
+                      <div className="text-2xl font-bold text-purple-600">{transcript.split(' ').length}</div>
+                      <div className="text-sm text-gray-500">Words</div>
+                      <div className="text-xs text-purple-600">Spoken</div>
                     </div>
                   </div>
                 </CardContent>
@@ -235,30 +334,32 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {sessionActive ? (
+                {sessionActive && aiSuggestion ? (
                   <div className="space-y-4">
                     <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                       <div className="flex items-start space-x-3">
                         <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
                         <div>
-                          <p className="text-sm font-medium text-blue-900">Structure your response using STAR method</p>
+                          <p className="text-sm font-medium text-blue-900">{aiSuggestion.suggestion}</p>
                           <p className="text-xs text-blue-700 mt-1">
-                            Consider starting with the Situation to provide context for your example.
+                            Confidence: {aiSuggestion.confidence}% • Framework: {aiSuggestion.framework || 'General'}
                           </p>
                         </div>
                       </div>
                     </div>
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="flex items-start space-x-3">
-                        <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                        <div>
-                          <p className="text-sm font-medium text-green-900">Great pace! Maintain current speaking speed</p>
-                          <p className="text-xs text-green-700 mt-1">
-                            Your current 142 WPM is in the optimal range for clear communication.
-                          </p>
+                    {analytics.wordsPerMinute > 0 && analytics.wordsPerMinute >= 120 && analytics.wordsPerMinute <= 150 && (
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-start space-x-3">
+                          <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                          <div>
+                            <p className="text-sm font-medium text-green-900">Great pace! Maintain current speaking speed</p>
+                            <p className="text-xs text-green-700 mt-1">
+                              Your current {analytics.wordsPerMinute} WPM is in the optimal range for clear communication.
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
@@ -269,6 +370,20 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Transcript Display */}
+            {sessionActive && transcript && (
+              <Card className="border-pink-100">
+                <CardHeader>
+                  <CardTitle className="text-lg">Live Transcript</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-gray-50 p-4 rounded-lg max-h-48 overflow-y-auto">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{transcript}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Recent Sessions */}
             <Card className="border-pink-100">
