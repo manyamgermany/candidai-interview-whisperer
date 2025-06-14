@@ -158,12 +158,25 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
       case 'openai':
         if (!key.startsWith('sk-')) {
           return "OpenAI API keys must start with 'sk-'";
-        } 
-        if (key.length < 45) {
-          return "OpenAI API key is too short (should be ~51 characters)";
         }
-        if (key.length > 60) {
-          return "OpenAI API key is too long";
+        
+        // Handle new project-based keys (sk-proj-) and legacy keys
+        if (key.startsWith('sk-proj-')) {
+          // Project-based keys are much longer (~164 characters)
+          if (key.length < 150) {
+            return "OpenAI project API key appears to be too short";
+          }
+          if (key.length > 200) {
+            return "OpenAI project API key appears to be too long";
+          }
+        } else {
+          // Legacy keys are shorter (~51 characters)
+          if (key.length < 45) {
+            return "OpenAI legacy API key is too short (should be ~51 characters)";
+          }
+          if (key.length > 60) {
+            return "OpenAI legacy API key is too long";
+          }
         }
         break;
       case 'claude':
