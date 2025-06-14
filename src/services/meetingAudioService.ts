@@ -1,11 +1,10 @@
-import { AudioAnalysis, MeetingAudioConfig } from './audio/audioTypes';
+
+import { AudioAnalysis as MeetingAudioAnalysis, MeetingAudioConfig } from './audio/audioTypes';
 import { QuestionClassifier } from './audio/questionClassifier';
 import { SpeechRecognitionService } from './audio/speechRecognitionService';
 import { AudioCapture } from './audio/audioCapture';
 
-export type { AudioAnalysis, MeetingAudioConfig };
-
-export { AudioAnalysis, MeetingAudioConfig };
+export type { MeetingAudioConfig };
 
 export class MeetingAudioService {
   private speechRecognition: SpeechRecognitionService;
@@ -29,7 +28,7 @@ export class MeetingAudioService {
     const questionType = this.questionClassifier.classifyQuestionType(transcript);
     const speakerChange = this.questionClassifier.detectSpeakerChange(transcript);
     
-    const analysis: AudioAnalysis = {
+    const analysis: MeetingAudioAnalysis = {
       transcript,
       isQuestion,
       questionType,

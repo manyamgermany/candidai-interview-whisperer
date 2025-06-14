@@ -1,4 +1,3 @@
-
 import { aiService } from './aiService';
 import { documentStorageService } from './documentStorageService';
 import { ProcessedDocument } from '@/types/documentTypes';
@@ -9,7 +8,7 @@ import { ContextBuilder } from './ai/contextBuilder';
 import { PromptGenerator } from './ai/promptGenerator';
 import { SuggestionAnalyzer } from './ai/suggestionAnalyzer';
 
-export { AISuggestion };
+export type { AISuggestion };
 
 export class AISuggestionService {
   private cache = new SuggestionCache();

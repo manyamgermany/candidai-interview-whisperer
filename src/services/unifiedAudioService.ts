@@ -1,26 +1,16 @@
+
 import { SpeechAnalyticsCalculator, SpeechAnalytics, TranscriptSegment } from './speech/speechAnalytics';
+import { AudioAnalysis, UnifiedAudioConfig } from './unified/audioTypes';
+import { QuestionDetector } from './unified/questionDetector';
+import { SpeechRecognitionManager } from './unified/speechRecognitionManager';
+import { AudioStreamManager } from './unified/audioStreamManager';
 
-export interface AudioAnalysis {
-  transcript: string;
-  isQuestion: boolean;
-  questionType: 'behavioral' | 'technical' | 'situational' | 'general';
-  confidence: number;
-  speakerChange: boolean;
-  urgency: 'low' | 'medium' | 'high';
-}
-
-export interface UnifiedAudioConfig {
-  onTranscript: (analysis: AudioAnalysis, segments: TranscriptSegment[]) => void;
-  onAnalytics: (analytics: SpeechAnalytics) => void;
-  onError: (error: string) => void;
-  onStatusChange: (status: 'capturing' | 'stopped' | 'error' | 'processing') => void;
-}
+export type { AudioAnalysis, UnifiedAudioConfig };
 
 export class UnifiedAudioService {
-  private mediaRecorder: MediaRecorder | null = null;
-  private audioContext: AudioContext | null = null;
-  private stream: MediaStream | null = null;
-  private recognition: SpeechRecognition | null = null;
+  private speechRecognitionManager: SpeechRecognitionManager;
+  private audioStreamManager: AudioStreamManager;
+  private questionDetector: QuestionDetector;
   private analyticsCalculator: SpeechAnalyticsCalculator;
   private isCapturing = false;
   private callbacks: UnifiedAudioConfig = {
@@ -30,111 +20,26 @@ export class UnifiedAudioService {
     onStatusChange: () => {}
   };
   
-  // Enhanced question detection patterns
-  private questionPatterns = [
-    { pattern: /\b(tell me about a time|describe a situation|give me an example)\b/i, type: 'behavioral' as const, weight: 0.9 },
-    { pattern: /\b(challenging|difficult|problem|issue|obstacle|conflict)\b/i, type: 'behavioral' as const, weight: 0.8 },
-    { pattern: /\b(technical|code|algorithm|programming|technology|system|architecture)\b/i, type: 'technical' as const, weight: 0.85 },
-    { pattern: /\b(what would you do|how would you handle|if you were|hypothetically)\b/i, type: 'situational' as const, weight: 0.8 },
-    { pattern: /\b(what|how|why|when|where|who|can you|could you|would you)\b/i, type: 'general' as const, weight: 0.7 },
-    { pattern: /\?$/, type: 'general' as const, weight: 0.9 },
-    { pattern: /\b(experience with|worked on|familiar with|knowledge of)\b/i, type: 'technical' as const, weight: 0.75 }
-  ];
-
   private lastTranscript = '';
-  private restartAttempts = 0;
-  private maxRestartAttempts = 5;
-  private restartDelay = 1000;
-  private confidenceThreshold = 0.7;
 
   constructor() {
+    this.speechRecognitionManager = new SpeechRecognitionManager();
+    this.audioStreamManager = new AudioStreamManager();
+    this.questionDetector = new QuestionDetector();
     this.analyticsCalculator = new SpeechAnalyticsCalculator();
-    this.initializeSpeechRecognition();
-  }
-
-  private initializeSpeechRecognition() {
-    try {
-      const SpeechRecognitionConstructor = 
-        (window as any).SpeechRecognition || 
-        (window as any).webkitSpeechRecognition;
-        
-      if (!SpeechRecognitionConstructor) {
-        console.warn('Speech Recognition not supported');
-        return;
-      }
-
-      this.recognition = new SpeechRecognitionConstructor();
-      this.setupRecognition();
-    } catch (error) {
-      console.error('Failed to initialize speech recognition:', error);
-    }
-  }
-
-  private setupRecognition() {
-    if (!this.recognition) return;
-
-    this.recognition.continuous = true;
-    this.recognition.interimResults = true;
-    this.recognition.lang = 'en-US';
-
-    this.recognition.onstart = () => {
-      this.isCapturing = true;
-      this.restartAttempts = 0;
-      this.callbacks.onStatusChange('capturing');
-    };
-
-    this.recognition.onresult = (event) => {
-      this.processResults(event);
-    };
-
-    this.recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      this.callbacks.onError(event.error);
-      
-      if (event.error === 'no-speech' || event.error === 'audio-capture') {
-        this.handleRestart();
-      } else {
-        this.callbacks.onStatusChange('error');
-      }
-    };
-
-    this.recognition.onend = () => {
-      if (this.isCapturing) {
-        this.handleRestart();
-      } else {
-        this.callbacks.onStatusChange('stopped');
-      }
-    };
-  }
-
-  private handleRestart() {
-    if (this.restartAttempts < this.maxRestartAttempts && this.isCapturing) {
-      this.restartAttempts++;
-      const delay = this.restartDelay * Math.pow(2, this.restartAttempts - 1); // Exponential backoff
-      
-      setTimeout(() => {
-        if (this.recognition && this.isCapturing) {
-          try {
-            this.recognition.start();
-          } catch (error) {
-            console.error('Failed to restart recognition:', error);
-            this.callbacks.onError('Failed to restart speech recognition');
-          }
-        }
-      }, delay);
-    }
   }
 
   private processResults(event: SpeechRecognitionEvent) {
     let finalTranscript = '';
     const currentTime = Date.now();
+    const confidenceThreshold = this.speechRecognitionManager.getConfidenceThreshold();
     
     for (let i = event.resultIndex; i < event.results.length; i++) {
       const result = event.results[i];
       const transcript = result[0].transcript.trim();
       const confidence = result[0].confidence || 0.8;
 
-      if (result.isFinal && confidence >= this.confidenceThreshold) {
+      if (result.isFinal && confidence >= confidenceThreshold) {
         finalTranscript += transcript + ' ';
         
         const segment: TranscriptSegment = {
@@ -164,87 +69,39 @@ export class UnifiedAudioService {
   }
 
   private analyzeTranscript(transcript: string): AudioAnalysis {
-    const text = transcript.toLowerCase();
-    let bestMatch: { type: 'behavioral' | 'technical' | 'situational' | 'general', confidence: number } = { type: 'general', confidence: 0 };
-    let isQuestion = false;
-
-    // Enhanced question detection with confidence scoring
-    for (const { pattern, type, weight } of this.questionPatterns) {
-      if (pattern.test(text)) {
-        isQuestion = true;
-        const confidence = weight;
-        if (confidence > bestMatch.confidence) {
-          bestMatch = { type, confidence };
-        }
-      }
-    }
-
-    // Determine urgency based on question type and keywords
-    let urgency: 'low' | 'medium' | 'high' = 'low';
-    if (isQuestion) {
-      if (bestMatch.type === 'behavioral' || bestMatch.type === 'technical') {
-        urgency = 'high';
-      } else if (bestMatch.type === 'situational') {
-        urgency = 'medium';
-      }
-    }
-
-    // Enhanced speaker change detection
-    const speakerChange = this.detectSpeakerChange(transcript);
+    const questionResult = this.questionDetector.detectQuestion(transcript);
+    const speakerChange = this.questionDetector.detectSpeakerChange(transcript);
+    const urgency = this.questionDetector.determineUrgency(questionResult.type, questionResult.isQuestion);
 
     return {
       transcript,
-      isQuestion,
-      questionType: bestMatch.type,
-      confidence: bestMatch.confidence,
+      isQuestion: questionResult.isQuestion,
+      questionType: questionResult.type,
+      confidence: questionResult.confidence,
       speakerChange,
       urgency
     };
-  }
-
-  private detectSpeakerChange(transcript: string): boolean {
-    // Enhanced speaker change detection
-    const speakerIndicators = [
-      /\b(okay|alright|so|um|well|now)\b/i,
-      /\.\.\./,
-      /\b(thank you|thanks)\b/i,
-      /\b(next question|moving on)\b/i
-    ];
-    
-    return speakerIndicators.some(pattern => pattern.test(transcript));
   }
 
   async startCapturing(config: UnifiedAudioConfig): Promise<boolean> {
     this.callbacks = config;
 
     try {
-      // Try tab audio capture first
-      const stream = await this.requestTabAudio();
-      if (!stream) {
-        // Fallback to microphone
-        const micStream = await navigator.mediaDevices.getUserMedia({ 
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            sampleRate: 16000
-          } 
-        });
-        this.stream = micStream;
-      } else {
-        this.stream = stream;
-      }
+      // Start audio stream
+      await this.audioStreamManager.startCapturing();
 
       this.isCapturing = true;
       this.lastTranscript = '';
       this.analyticsCalculator.reset();
 
       // Start speech recognition
-      if (this.recognition) {
-        this.recognition.start();
-      }
+      const success = this.speechRecognitionManager.start({
+        onResult: (event) => this.processResults(event),
+        onError: (error) => this.callbacks.onError(error),
+        onStatusChange: (status) => this.callbacks.onStatusChange(status as any)
+      });
 
-      return true;
+      return success;
     } catch (error) {
       console.error('Failed to start audio capture:', error);
       this.callbacks.onError('Failed to start audio capture');
@@ -252,39 +109,10 @@ export class UnifiedAudioService {
     }
   }
 
-  private async requestTabAudio(): Promise<MediaStream | null> {
-    try {
-      if (typeof chrome !== 'undefined' && chrome.tabCapture) {
-        return new Promise((resolve) => {
-          chrome.tabCapture.capture({ audio: true }, (stream) => {
-            if (chrome.runtime.lastError) {
-              console.log('Tab capture failed, using microphone');
-              resolve(null);
-            } else {
-              resolve(stream);
-            }
-          });
-        });
-      }
-      return null;
-    } catch (error) {
-      console.log('Tab audio capture not available');
-      return null;
-    }
-  }
-
   stopCapturing() {
     this.isCapturing = false;
-    
-    if (this.recognition) {
-      this.recognition.stop();
-    }
-    
-    if (this.stream) {
-      this.stream.getTracks().forEach(track => track.stop());
-      this.stream = null;
-    }
-    
+    this.speechRecognitionManager.stop();
+    this.audioStreamManager.stopCapturing();
     this.callbacks.onStatusChange('stopped');
   }
 
@@ -305,10 +133,7 @@ export class UnifiedAudioService {
   }
 
   static isSupported(): boolean {
-    return !!(
-      (window as any).SpeechRecognition || 
-      (window as any).webkitSpeechRecognition
-    );
+    return SpeechRecognitionManager.isSupported();
   }
 }
 
