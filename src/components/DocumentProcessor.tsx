@@ -22,6 +22,7 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [dragActive, setDragActive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -134,6 +135,8 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
   };
 
   const handleFiles = async (files: FileList) => {
+    setIsProcessing(true);
+    
     for (const file of Array.from(files)) {
       const supportedTypes = [
         'application/pdf',
@@ -177,6 +180,11 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
         
         setUploadedFiles(prev => [...prev, processingDoc]);
 
+        toast({
+          title: "Processing Started",
+          description: `Starting analysis of ${file.name}...`,
+        });
+
         const processedDoc = await documentProcessingService.processDocument(file);
         
         setUploadedFiles(prev => 
@@ -209,6 +217,8 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
         });
       }
     }
+    
+    setIsProcessing(false);
   };
 
   const removeFile = async (id: string) => {
@@ -297,11 +307,18 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
                   <span>{uploadedFiles.length} documents</span>
                 </div>
               )}
+              {isProcessing && (
+                <div className="flex items-center space-x-2 text-sm text-blue-600 bg-blue-100 px-3 py-1 rounded-full">
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  <span>Processing...</span>
+                </div>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={loadExistingDocuments}
                 className="text-gray-600 hover:text-pink-600"
+                disabled={isProcessing}
               >
                 <RefreshCw className="h-4 w-4" />
               </Button>
@@ -321,6 +338,7 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
               onDragOver={handleDrag}
               onDrop={handleDrop}
               onFilesSelected={handleFiles}
+              isProcessing={isProcessing}
             />
 
             <DocumentLibrary

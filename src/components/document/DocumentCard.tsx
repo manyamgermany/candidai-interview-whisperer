@@ -8,7 +8,8 @@ import {
   AlertTriangle, 
   FileText, 
   Download, 
-  Trash2 
+  Trash2,
+  Loader2
 } from "lucide-react";
 import { ProcessedDocument } from "@/services/documentProcessingService";
 
@@ -40,11 +41,37 @@ const DocumentCard = ({
       case 'completed':
         return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'processing':
-        return <Clock className="h-5 w-5 text-blue-500 animate-pulse" />;
+        return <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />;
       case 'error':
         return <AlertTriangle className="h-5 w-5 text-red-500" />;
       default:
         return <FileText className="h-5 w-5 text-gray-400" />;
+    }
+  };
+
+  const getStatusText = (status: ProcessedDocument['status']) => {
+    switch (status) {
+      case 'completed':
+        return 'Analysis Complete';
+      case 'processing':
+        return 'Processing...';
+      case 'error':
+        return 'Processing Failed';
+      default:
+        return 'Unknown';
+    }
+  };
+
+  const getStatusColor = (status: ProcessedDocument['status']) => {
+    switch (status) {
+      case 'completed':
+        return 'text-green-600';
+      case 'processing':
+        return 'text-blue-600';
+      case 'error':
+        return 'text-red-600';
+      default:
+        return 'text-gray-600';
     }
   };
 
@@ -59,6 +86,7 @@ const DocumentCard = ({
           <Checkbox
             checked={isSelected}
             onCheckedChange={onSelect}
+            disabled={document.status === 'processing'}
           />
           <div className="w-10 h-10 bg-gradient-to-br from-pink-100 to-rose-100 rounded-lg flex items-center justify-center">
             {getStatusIcon(document.status)}
@@ -68,10 +96,9 @@ const DocumentCard = ({
             <div className="flex items-center space-x-2 text-xs text-gray-500">
               <span>{formatFileSize(document.size)}</span>
               <span>•</span>
-              <span className="capitalize">{document.status}</span>
-              {document.status === 'processing' && (
-                <div className="w-3 h-3 border border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-              )}
+              <span className={`capitalize font-medium ${getStatusColor(document.status)}`}>
+                {getStatusText(document.status)}
+              </span>
             </div>
           </div>
         </div>
@@ -91,7 +118,8 @@ const DocumentCard = ({
             variant="ghost"
             size="sm"
             onClick={onDelete}
-            className="text-gray-400 hover:text-red-500"
+            disabled={document.status === 'processing'}
+            className="text-gray-400 hover:text-red-500 disabled:opacity-50"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -99,8 +127,22 @@ const DocumentCard = ({
       </div>
       
       {document.status === 'processing' && (
-        <div className="mt-3">
-          <Progress value={65} className="h-1" />
+        <div className="mt-3 space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-blue-600 font-medium">Analyzing document...</span>
+            <span className="text-gray-500">Please wait</span>
+          </div>
+          <Progress value={75} className="h-2" />
+          <div className="text-xs text-gray-500 text-center">
+            Extracting content and generating insights
+          </div>
+        </div>
+      )}
+
+      {document.status === 'error' && (
+        <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+          <div className="font-medium">Processing failed</div>
+          <div>Please try uploading the document again or check the file format.</div>
         </div>
       )}
     </div>
