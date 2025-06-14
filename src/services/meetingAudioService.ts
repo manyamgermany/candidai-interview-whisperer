@@ -1,8 +1,9 @@
-
 import { AudioAnalysis, MeetingAudioConfig } from './audio/audioTypes';
 import { QuestionClassifier } from './audio/questionClassifier';
 import { SpeechRecognitionService } from './audio/speechRecognitionService';
 import { AudioCapture } from './audio/audioCapture';
+
+export type { AudioAnalysis, MeetingAudioConfig };
 
 export { AudioAnalysis, MeetingAudioConfig };
 
