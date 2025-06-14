@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +35,9 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
     wordsPerMinute: 0,
     fillerWords: 0,
     pauseDuration: 0,
-    confidenceScore: 0
+    confidenceScore: 0,
+    totalWords: 0,
+    speakingTime: 0
   });
   const [aiSuggestion, setAiSuggestion] = useState<AIResponse | null>(null);
   const [sessionDuration, setSessionDuration] = useState("00:00");
@@ -106,14 +109,15 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
       setIsRecording(false);
       speechService.stopListening();
       
-      // Save session data
+      // Save session data with all required properties
       const sessionData = {
-        id: Date.now(),
-        type: "Live Interview",
-        duration: sessionDuration,
+        id: Date.now().toString(),
+        timestamp: Date.now(),
+        platform: "Live Interview",
+        duration: parseFloat(sessionDuration.replace(':', '.')),
         transcript,
         analytics,
-        date: new Date().toISOString().split('T')[0]
+        suggestions: aiSuggestion ? [aiSuggestion.suggestion] : []
       };
       await chromeStorage.saveSession(sessionData);
     }

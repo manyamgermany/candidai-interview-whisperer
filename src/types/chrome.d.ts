@@ -5,6 +5,8 @@ declare namespace chrome {
     interface StorageArea {
       get(keys?: string | string[] | { [key: string]: any } | null): Promise<{ [key: string]: any }>;
       set(items: { [key: string]: any }): Promise<void>;
+      clear(): Promise<void>;
+      getBytesInUse(keys?: string | string[] | null): Promise<number>;
     }
     
     const sync: StorageArea;
@@ -12,6 +14,7 @@ declare namespace chrome {
   }
   
   namespace runtime {
+    const id: string;
     function sendMessage(message: any): void;
     function getURL(path: string): string;
   }

@@ -1,4 +1,3 @@
-
 export interface SpeechAnalytics {
   wordsPerMinute: number;
   fillerWords: number;
@@ -69,7 +68,6 @@ export class SpeechService {
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
     this.recognition.lang = 'en-US';
-    this.recognition.maxAlternatives = 3;
 
     this.recognition.onstart = () => {
       this.isListening = true;

@@ -78,7 +78,7 @@ const isExtensionContext = (): boolean => {
          window.chrome && 
          window.chrome.storage && 
          window.chrome.runtime && 
-         window.chrome.runtime.id;
+         typeof window.chrome.runtime.id !== 'undefined';
 };
 
 export const chromeStorage = {
