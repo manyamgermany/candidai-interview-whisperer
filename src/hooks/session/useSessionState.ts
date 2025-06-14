@@ -14,7 +14,9 @@ export const useSessionState = () => {
     currentSuggestion: null,
     lastQuestion: null,
     confidence: 0,
-    errorMessage: null
+    errorMessage: null,
+    sessionStartTime: 0,
+    sessionDuration: '00:00',
   });
 
   // Use refs to avoid stale closures in callbacks

@@ -1,4 +1,5 @@
 
+import { useEffect } from 'react';
 import { useSessionState } from './useSessionState';
 import { useSessionCallbacks } from './useSessionCallbacks';
 import { useSessionActions } from './useSessionActions';
@@ -29,6 +30,29 @@ export const useOptimizedSessionManager = () => {
     lastQuestionTimeRef,
     callbacks
   });
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (sessionState.isActive && sessionState.sessionStartTime) {
+      interval = setInterval(() => {
+        const elapsed = Date.now() - sessionState.sessionStartTime;
+        const minutes = Math.floor(elapsed / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        const newDuration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        setSessionState(prev => {
+          if (prev.sessionDuration === newDuration) {
+            return prev;
+          }
+          return {
+            ...prev,
+            sessionDuration: newDuration,
+          };
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [sessionState.isActive, sessionState.sessionStartTime, setSessionState]);
 
   return {
     sessionState,

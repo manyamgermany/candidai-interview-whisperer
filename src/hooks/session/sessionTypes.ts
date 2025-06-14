@@ -14,6 +14,8 @@ export interface OptimizedSessionState {
   lastQuestion: AudioAnalysis | null;
   confidence: number;
   errorMessage: string | null;
+  sessionStartTime: number;
+  sessionDuration: string;
 }
 
 export interface SessionCallbacks {

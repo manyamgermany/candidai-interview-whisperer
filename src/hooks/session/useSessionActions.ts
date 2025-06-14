@@ -41,7 +41,9 @@ export const useSessionActions = ({
           errorMessage: null,
           transcript: '',
           segments: [],
-          currentSuggestion: null
+          currentSuggestion: null,
+          sessionStartTime: Date.now(),
+          sessionDuration: '00:00',
         }));
 
         // Reset refs
