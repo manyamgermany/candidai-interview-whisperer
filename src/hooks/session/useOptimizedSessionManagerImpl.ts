@@ -4,8 +4,9 @@ import { useSessionState } from './useSessionState';
 import { useSessionCallbacks } from './useSessionCallbacks';
 import { useSessionActions } from './useSessionActions';
 import { UnifiedAudioService } from '@/services/unifiedAudioService';
+import { PerformanceReport } from '@/types/interviewTypes';
 
-export const useOptimizedSessionManager = () => {
+export const useOptimizedSessionManager = (props?: { onPerformanceReportGenerated?: (report: PerformanceReport) => void }) => {
   const {
     sessionState,
     setSessionState,
@@ -28,7 +29,8 @@ export const useOptimizedSessionManager = () => {
     transcriptRef,
     segmentsRef,
     lastQuestionTimeRef,
-    callbacks
+    callbacks,
+    onPerformanceReportGenerated: props?.onPerformanceReportGenerated,
   });
 
   useEffect(() => {

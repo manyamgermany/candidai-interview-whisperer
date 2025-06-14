@@ -1,4 +1,3 @@
-
 import { SpeechAnalyticsCalculator, SpeechAnalytics, TranscriptSegment } from './speech/speechAnalytics';
 import { AudioAnalysis, UnifiedAudioConfig } from './unified/audioTypes';
 import { QuestionDetector } from './unified/questionDetector';
@@ -114,6 +113,22 @@ export class UnifiedAudioService {
     this.speechRecognitionManager.stop();
     this.audioStreamManager.stopCapturing();
     this.callbacks.onStatusChange('stopped');
+  }
+
+  pauseListening() {
+    this.speechRecognitionManager.stop();
+    // We'll use 'processing' status to indicate a paused state for the UI
+    this.callbacks.onStatusChange('processing');
+  }
+  
+  resumeListening() {
+    if(this.isCapturing && !this.speechRecognitionManager.isActive()) {
+      this.speechRecognitionManager.start({
+        onResult: (event) => this.processResults(event),
+        onError: (error) => this.callbacks.onError(error),
+        onStatusChange: (status) => this.callbacks.onStatusChange(status as any)
+      });
+    }
   }
 
   isActive(): boolean {

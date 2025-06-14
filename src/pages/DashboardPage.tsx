@@ -1,8 +1,6 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { SpeechAnalytics } from "@/services/speechService";
-import { AIResponse } from "@/services/aiService";
 import { PerformanceReport } from "@/types/interviewTypes";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { SessionControl } from "@/components/dashboard/SessionControl";
@@ -10,26 +8,27 @@ import { AIAssistant } from "@/components/dashboard/AIAssistant";
 import { RealTimeCoaching } from "@/components/dashboard/RealTimeCoaching";
 import { ChatInput } from "@/components/dashboard/ChatInput";
 import { ChatMessage } from "@/types/chatTypes";
+import { useOptimizedSessionManager } from "@/hooks/useOptimizedSessionManager";
+import { AISuggestion } from "@/services/aiSuggestionService";
 
 const DashboardPage = () => {
   const navigate = useNavigate();
-  const [sessionActive, setSessionActive] = useState(false);
-  const [transcript, setTranscript] = useState("");
-  const [analytics, setAnalytics] = useState<SpeechAnalytics>({
-    wordsPerMinute: 0,
-    fillerWords: 0,
-    pauseDuration: 0,
-    confidenceScore: 0,
-    totalWords: 0,
-    speakingTime: 0
-  });
-  const [aiSuggestion, setAiSuggestion] = useState<AIResponse | null>(null);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [isChatLoading, setIsChatLoading] = useState(false);
-
+  
   const handlePerformanceReport = (report: PerformanceReport) => {
     navigate('/reports', { state: { latestReport: report } });
   };
+  
+  const {
+    sessionState,
+    startSession,
+    stopSession,
+    toggleRecording,
+    isGeneratingReport,
+    setSuggestion,
+  } = useOptimizedSessionManager({ onPerformanceReportGenerated: handlePerformanceReport });
+
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50 flex flex-col">
@@ -42,20 +41,21 @@ const DashboardPage = () => {
             {/* Session Control - More compact */}
             <div className="flex-shrink-0">
               <SessionControl
-                onSessionChange={setSessionActive}
-                onTranscriptChange={setTranscript}
-                onAnalyticsChange={setAnalytics}
-                onAISuggestionChange={setAiSuggestion}
-                onPerformanceReportGenerated={handlePerformanceReport}
+                sessionState={sessionState}
+                startSession={startSession}
+                stopSession={stopSession}
+                toggleRecording={toggleRecording}
+                isGeneratingReport={isGeneratingReport}
+                onAISuggestionChange={setSuggestion}
               />
             </div>
 
             {/* Real-time Coaching - Compact version */}
             <div className="flex-1 min-h-0 overflow-hidden">
               <RealTimeCoaching 
-                analytics={analytics}
-                transcript={transcript}
-                sessionActive={sessionActive}
+                analytics={sessionState.analytics}
+                transcript={sessionState.transcript}
+                sessionActive={sessionState.isActive}
               />
             </div>
           </div>
@@ -64,9 +64,9 @@ const DashboardPage = () => {
           <div className="flex-1 min-h-0 flex flex-col justify-end" style={{ minHeight: '60vh' }}>
             <div className="flex-1 min-h-0">
               <AIAssistant 
-                sessionActive={sessionActive}
-                aiSuggestion={aiSuggestion}
-                analytics={analytics}
+                sessionActive={sessionState.isActive}
+                aiSuggestion={sessionState.currentSuggestion}
+                analytics={sessionState.analytics}
                 chatMessages={chatMessages}
                 isLoading={isChatLoading}
               />
@@ -78,9 +78,9 @@ const DashboardPage = () => {
             <ChatInput 
               onMessagesUpdate={setChatMessages}
               onLoadingChange={setIsChatLoading}
-              sessionActive={sessionActive}
-              currentTranscript={transcript}
-              analytics={analytics}
+              sessionActive={sessionState.isActive}
+              currentTranscript={sessionState.transcript}
+              analytics={sessionState.analytics}
             />
           </div>
         </div>

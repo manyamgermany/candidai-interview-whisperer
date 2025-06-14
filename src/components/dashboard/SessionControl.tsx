@@ -4,49 +4,46 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Mic, MicOff, Play, Pause, BarChart3 } from "lucide-react";
-import { useSessionManager } from "@/hooks/useSessionManager";
+import { OptimizedSessionState } from "@/hooks/useOptimizedSessionManager";
 import { SessionStatus } from "./SessionStatus";
 import { AIFeaturesIndicator } from "./AIFeaturesIndicator";
 import { ScreenshotAnalyzer } from "./ScreenshotAnalyzer";
-import { PerformanceReport } from "@/types/interviewTypes";
-import { SpeechAnalytics } from "@/services/speech/speechAnalytics";
+import { AISuggestion } from "@/services/aiSuggestionService";
 
 interface SessionControlProps {
-  onSessionChange: (active: boolean) => void;
-  onTranscriptChange: (transcript: string) => void;
-  onAnalyticsChange: (analytics: SpeechAnalytics) => void;
-  onAISuggestionChange: (suggestion: any) => void;
-  onPerformanceReportGenerated?: (report: PerformanceReport) => void;
+  sessionState: OptimizedSessionState;
+  startSession: () => void;
+  stopSession: () => void;
+  toggleRecording: () => void;
+  isGeneratingReport: boolean;
+  onAISuggestionChange: (suggestion: AISuggestion) => void;
 }
 
 export const SessionControl = memo(({
-  onSessionChange,
-  onTranscriptChange,
-  onAnalyticsChange,
-  onAISuggestionChange,
-  onPerformanceReportGenerated
+  sessionState,
+  startSession,
+  stopSession,
+  toggleRecording,
+  isGeneratingReport,
+  onAISuggestionChange
 }: SessionControlProps) => {
-  const {
-    isRecording,
-    sessionActive,
-    sessionDuration,
-    isGeneratingReport,
-    handleStartSession,
-    toggleRecording
-  } = useSessionManager({
-    onSessionChange,
-    onTranscriptChange,
-    onAnalyticsChange,
-    onAISuggestionChange,
-    onPerformanceReportGenerated
-  });
+
+  const handleMainButtonClick = () => {
+    if (sessionState.isActive) {
+      stopSession();
+    } else {
+      startSession();
+    }
+  };
 
   const handleScreenshotAnalysis = (analysis: any) => {
     onAISuggestionChange({
-      suggestion: analysis.insights,
+      text: analysis.insights,
       confidence: analysis.confidence,
       framework: 'visual-analysis',
-      type: 'screenshot-analysis'
+      type: 'screenshot-analysis',
+      priority: 'medium',
+      id: Date.now().toString()
     });
   };
 
@@ -61,17 +58,17 @@ export const SessionControl = memo(({
                   <TooltipTrigger asChild>
                     <Button 
                       size="lg" 
-                      onClick={handleStartSession} 
+                      onClick={handleMainButtonClick} 
                       disabled={isGeneratingReport} 
                       className={`${
-                        sessionActive 
+                        sessionState.isActive 
                           ? "bg-red-500 hover:bg-red-600" 
                           : "bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600"
                       } text-white h-12 w-12 p-0`}
                     >
                       {isGeneratingReport ? (
                         <BarChart3 className="h-6 w-6 animate-pulse" />
-                      ) : sessionActive ? (
+                      ) : sessionState.isActive ? (
                         <Pause className="h-6 w-6" />
                       ) : (
                         <Play className="h-6 w-6" />
@@ -81,7 +78,7 @@ export const SessionControl = memo(({
                   <TooltipContent>
                     {isGeneratingReport 
                       ? "Generating performance report..." 
-                      : sessionActive 
+                      : sessionState.isActive 
                         ? "End session and analyze performance" 
                         : "Start AI-powered meeting session"
                     }
@@ -95,18 +92,18 @@ export const SessionControl = memo(({
                     <Button 
                       size="lg" 
                       onClick={toggleRecording} 
-                      disabled={!sessionActive} 
+                      disabled={!sessionState.isActive} 
                       className={`${
-                        isRecording 
+                        sessionState.isRecording 
                           ? "bg-red-500 hover:bg-red-600" 
                           : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
                       } text-white h-12 w-12 p-0 disabled:opacity-50`}
                     >
-                      {isRecording ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+                      {sessionState.isRecording ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {isRecording ? "Mute microphone" : "Unmute microphone"}
+                    {sessionState.isRecording ? "Mute microphone" : "Unmute microphone"}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -118,13 +115,13 @@ export const SessionControl = memo(({
             </div>
             
             <SessionStatus 
-              sessionActive={sessionActive} 
-              sessionDuration={sessionDuration} 
-              isRecording={isRecording} 
+              sessionActive={sessionState.isActive} 
+              sessionDuration={sessionState.sessionDuration} 
+              isRecording={sessionState.isRecording} 
             />
           </div>
           
-          <AIFeaturesIndicator sessionActive={sessionActive} />
+          <AIFeaturesIndicator sessionActive={sessionState.isActive} />
         </div>
       </CardContent>
     </Card>
