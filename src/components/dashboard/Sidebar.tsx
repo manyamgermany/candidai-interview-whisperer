@@ -1,125 +1,113 @@
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { FileText, TrendingUp, Settings } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { User, Target, BarChart3, Settings, FileText, Play } from "lucide-react";
 
 interface SidebarProps {
   onNavigate: (tab: string) => void;
+  onViewChange: (view: 'dashboard' | 'profile' | 'simulator' | 'reports') => void;
 }
 
-export const Sidebar = ({ onNavigate }: SidebarProps) => {
-  const aiProviders = [
-    { name: "OpenAI GPT-4", status: "active", reliability: 98 },
-    { name: "Anthropic Claude", status: "standby", reliability: 95 },
-    { name: "Google Gemini", status: "standby", reliability: 92 }
-  ];
-
+export const Sidebar = ({ onNavigate, onViewChange }: SidebarProps) => {
   return (
     <div className="space-y-6">
-      {/* AI Provider Status */}
-      <Card className="border-pink-100">
-        <CardHeader>
-          <CardTitle className="text-lg">AI Provider Status</CardTitle>
-          <CardDescription>
-            Multi-LLM integration with intelligent fallback
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {aiProviders.map((provider, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-2 h-2 rounded-full ${
-                    provider.status === 'active' ? 'bg-green-500' : 'bg-gray-300'
-                  }`}></div>
-                  <span className="text-sm font-medium">{provider.name}</span>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-500">{provider.reliability}%</div>
-                  <Badge variant="secondary" className={`text-xs ${
-                    provider.status === 'active' 
-                      ? 'bg-green-100 text-green-700 border-green-200' 
-                      : 'bg-gray-100 text-gray-700 border-gray-200'
-                  }`}>
-                    {provider.status}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Quick Actions */}
       <Card className="border-pink-100">
         <CardHeader>
           <CardTitle className="text-lg">Quick Actions</CardTitle>
+          <CardDescription>Access key features and tools</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Button 
-            variant="outline" 
-            className="w-full justify-start border-pink-200 text-pink-600 hover:bg-pink-50"
-            onClick={() => onNavigate("documents")}
+          <Button
+            onClick={() => onViewChange('profile')}
+            variant="outline"
+            className="w-full justify-start border-pink-200 text-pink-700 hover:bg-pink-50"
           >
-            <FileText className="h-4 w-4 mr-2" />
-            Upload Resume
+            <User className="h-4 w-4 mr-3" />
+            Manage Profile
           </Button>
-          <Button 
-            variant="outline" 
-            className="w-full justify-start border-pink-200 text-pink-600 hover:bg-pink-50"
-            onClick={() => onNavigate("analytics")}
+          
+          <Button
+            onClick={() => onViewChange('simulator')}
+            variant="outline"
+            className="w-full justify-start border-blue-200 text-blue-700 hover:bg-blue-50"
           >
-            <TrendingUp className="h-4 w-4 mr-2" />
-            View Analytics
+            <Play className="h-4 w-4 mr-3" />
+            Interview Simulator
           </Button>
-          <Button 
-            variant="outline" 
-            className="w-full justify-start border-pink-200 text-pink-600 hover:bg-pink-50"
-            onClick={() => onNavigate("settings")}
+          
+          <Button
+            onClick={() => onViewChange('reports')}
+            variant="outline"
+            className="w-full justify-start border-green-200 text-green-700 hover:bg-green-50"
           >
-            <Settings className="h-4 w-4 mr-2" />
-            Configure AI
+            <BarChart3 className="h-4 w-4 mr-3" />
+            Performance Reports
+          </Button>
+          
+          <Button
+            onClick={() => onNavigate('settings')}
+            variant="outline"
+            className="w-full justify-start border-gray-200 text-gray-700 hover:bg-gray-50"
+          >
+            <Settings className="h-4 w-4 mr-3" />
+            Settings
           </Button>
         </CardContent>
       </Card>
 
-      {/* Performance Overview */}
+      {/* AI Features Status */}
       <Card className="border-pink-100">
         <CardHeader>
-          <CardTitle className="text-lg">Performance Overview</CardTitle>
+          <CardTitle className="text-lg">AI Features</CardTitle>
+          <CardDescription>Current AI capabilities status</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Overall Score</span>
-                <span className="font-medium">87%</span>
-              </div>
-              <Progress value={87} className="h-2" />
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Communication</span>
-                <span className="font-medium">92%</span>
-              </div>
-              <Progress value={92} className="h-2" />
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Technical Skills</span>
-                <span className="font-medium">85%</span>
-              </div>
-              <Progress value={85} className="h-2" />
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span>Confidence</span>
-                <span className="font-medium">89%</span>
-              </div>
-              <Progress value={89} className="h-2" />
-            </div>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Personalized Responses</span>
+            <Badge className="bg-green-100 text-green-700 border-green-200">Active</Badge>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Industry-Specific Models</span>
+            <Badge className="bg-green-100 text-green-700 border-green-200">Active</Badge>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Performance Scoring</span>
+            <Badge className="bg-green-100 text-green-700 border-green-200">Active</Badge>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Real-time Coaching</span>
+            <Badge className="bg-blue-100 text-blue-700 border-blue-200">Live</Badge>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tips */}
+      <Card className="bg-gradient-to-br from-pink-50 to-rose-50 border-pink-100">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center space-x-2">
+            <Target className="h-5 w-5 text-pink-600" />
+            <span>Pro Tips</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="text-sm">
+            <p className="font-medium text-pink-800 mb-1">Complete Your Profile</p>
+            <p className="text-pink-700">Add your resume and projects for better AI suggestions.</p>
+          </div>
+          
+          <div className="text-sm">
+            <p className="font-medium text-pink-800 mb-1">Practice Regularly</p>
+            <p className="text-pink-700">Use the simulator to improve your interview skills.</p>
+          </div>
+          
+          <div className="text-sm">
+            <p className="font-medium text-pink-800 mb-1">Review Reports</p>
+            <p className="text-pink-700">Check performance reports to track your progress.</p>
           </div>
         </CardContent>
       </Card>
