@@ -10,11 +10,7 @@ export const Sidebar = ({
       {/* Minimal sidebar for focused dashboard */}
       <Card className="border-pink-100">
         
-        <CardContent>
-          <div className="text-sm text-gray-600">
-            <p>Dashboard is optimized for distraction-free meetings and interviews.</p>
-          </div>
-        </CardContent>
+        
       </Card>
     </div>;
 };
