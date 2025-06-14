@@ -4,13 +4,22 @@ import { Brain } from "lucide-react";
 import { AIResponse } from "@/services/aiService";
 import { SpeechAnalytics } from "@/services/speechService";
 
+interface ChatMessage {
+  id: string;
+  type: 'user' | 'ai';
+  content: string;
+  timestamp: number;
+}
+
 interface AIAssistantProps {
   sessionActive: boolean;
   aiSuggestion: AIResponse | null;
   analytics: SpeechAnalytics;
+  chatMessages?: ChatMessage[];
+  isLoading?: boolean;
 }
 
-export const AIAssistant = ({ sessionActive, aiSuggestion, analytics }: AIAssistantProps) => {
+export const AIAssistant = ({ sessionActive, aiSuggestion, analytics, chatMessages = [], isLoading = false }: AIAssistantProps) => {
   return (
     <Card className="border-pink-100">
       <CardHeader>
@@ -23,6 +32,36 @@ export const AIAssistant = ({ sessionActive, aiSuggestion, analytics }: AIAssist
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Chat Messages Display */}
+        {chatMessages.length > 0 && (
+          <div className="max-h-64 overflow-y-auto space-y-3 mb-4 bg-gray-50 p-3 rounded-lg">
+            {chatMessages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] p-2 rounded-lg text-sm ${
+                    message.type === 'user'
+                      ? 'bg-pink-500 text-white'
+                      : 'bg-white border border-gray-200'
+                  }`}
+                >
+                  {message.content}
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-white border border-gray-200 p-2 rounded-lg text-sm text-gray-500">
+                  AI is thinking...
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Session-based AI suggestions */}
         {sessionActive && aiSuggestion ? (
           <div className="space-y-4">
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -50,13 +89,13 @@ export const AIAssistant = ({ sessionActive, aiSuggestion, analytics }: AIAssist
               </div>
             )}
           </div>
-        ) : (
+        ) : chatMessages.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Brain className="h-12 w-12 mx-auto mb-4 text-gray-300" />
             <p>AI assistance will appear here during your meeting session</p>
             <p className="text-sm mt-2">Start a session to receive real-time coaching and suggestions</p>
           </div>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { SpeechAnalytics } from "@/services/speechService";
 import { AIResponse } from "@/services/aiService";
@@ -15,6 +16,13 @@ import { RealTimeCoaching } from "./dashboard/RealTimeCoaching";
 import { SessionHistory } from "./dashboard/SessionHistory";
 import { AIConfigPanel } from "./dashboard/AIConfigPanel";
 import { ChatInput } from "./dashboard/ChatInput";
+
+interface ChatMessage {
+  id: string;
+  type: 'user' | 'ai';
+  content: string;
+  timestamp: number;
+}
 
 interface DashboardProps {
   onNavigate: (tab: string) => void;
@@ -34,6 +42,8 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
   const [aiSuggestion, setAiSuggestion] = useState<AIResponse | null>(null);
   const [activeView, setActiveView] = useState<'dashboard' | 'profile' | 'simulator' | 'reports' | 'config' | 'history'>('dashboard');
   const [latestPerformanceReport, setLatestPerformanceReport] = useState<PerformanceReport | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
 
   const handlePerformanceReport = (report: PerformanceReport) => {
     setLatestPerformanceReport(report);
@@ -171,6 +181,8 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
               sessionActive={sessionActive}
               aiSuggestion={aiSuggestion}
               analytics={analytics}
+              chatMessages={chatMessages}
+              isLoading={isChatLoading}
             />
 
             {/* Transcript Display */}
@@ -185,7 +197,10 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
 
         {/* Chat Input at the Bottom */}
         <div className="mt-8">
-          <ChatInput />
+          <ChatInput 
+            onMessagesUpdate={setChatMessages}
+            onLoadingChange={setIsChatLoading}
+          />
         </div>
       </div>
     </div>

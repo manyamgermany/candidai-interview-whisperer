@@ -14,7 +14,12 @@ interface ChatMessage {
   timestamp: number;
 }
 
-export const ChatInput = () => {
+interface ChatInputProps {
+  onMessagesUpdate: (messages: ChatMessage[]) => void;
+  onLoadingChange: (isLoading: boolean) => void;
+}
+
+export const ChatInput = ({ onMessagesUpdate, onLoadingChange }: ChatInputProps) => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -32,9 +37,12 @@ export const ChatInput = () => {
       timestamp: Date.now()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+    onMessagesUpdate(updatedMessages);
     setInput("");
     setIsLoading(true);
+    onLoadingChange(true);
 
     try {
       const response = await aiService.generateSuggestion(
@@ -50,7 +58,9 @@ export const ChatInput = () => {
         timestamp: Date.now()
       };
 
-      setMessages(prev => [...prev, aiMessage]);
+      const finalMessages = [...updatedMessages, aiMessage];
+      setMessages(finalMessages);
+      onMessagesUpdate(finalMessages);
     } catch (error) {
       console.error('Chat error:', error);
       toast({
@@ -60,6 +70,7 @@ export const ChatInput = () => {
       });
     } finally {
       setIsLoading(false);
+      onLoadingChange(false);
     }
   };
 
@@ -71,34 +82,6 @@ export const ChatInput = () => {
             <MessageSquare className="h-5 w-5 text-pink-600" />
             <h3 className="text-lg font-semibold">Quick AI Assistant</h3>
           </div>
-          
-          {messages.length > 0 && (
-            <div className="max-h-48 overflow-y-auto space-y-3 mb-4 bg-gray-50 p-3 rounded-lg">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[80%] p-2 rounded-lg text-sm ${
-                      message.type === 'user'
-                        ? 'bg-pink-500 text-white'
-                        : 'bg-white border border-gray-200'
-                    }`}
-                  >
-                    {message.content}
-                  </div>
-                </div>
-              ))}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-white border border-gray-200 p-2 rounded-lg text-sm text-gray-500">
-                    AI is thinking...
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="flex space-x-2">
             <Input
