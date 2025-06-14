@@ -12,6 +12,7 @@ import SimulatorPage from "./pages/SimulatorPage";
 import ReportsPage from "./pages/ReportsPage";
 import HistoryPage from "./pages/HistoryPage";
 import ConfigPage from "./pages/ConfigPage";
+import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/config" element={<ConfigPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
