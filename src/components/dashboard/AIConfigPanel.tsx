@@ -11,7 +11,7 @@ import { LoadingState } from "./config/LoadingState";
 import { AIFeaturesIndicator } from "./AIFeaturesIndicator";
 
 export const AIConfigPanel = () => {
-  const { config, loading, error, updateConfig, resetConfig } = useAIConfig();
+  const { config, loading, error, updateConfig, resetConfig, saveConfiguration, isSaving } = useAIConfig();
 
   if (loading) {
     return <LoadingState />;
@@ -31,7 +31,7 @@ export const AIConfigPanel = () => {
 
   return (
     <div className="space-y-6">
-      <ConfigHeader onReset={resetConfig} />
+      <ConfigHeader onReset={resetConfig} onSave={saveConfiguration} isSaving={isSaving} />
       
       {/* AI Features Status */}
       <Card className="border-pink-100">

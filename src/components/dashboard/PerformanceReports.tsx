@@ -135,29 +135,29 @@ export const PerformanceReports = ({ latestReport }: PerformanceReportsProps) =>
                   </Badge>
                 </CardTitle>
                 <CardDescription>
-                  Generated on {new Date(latestReport.generatedAt).toLocaleDateString()}
+                  Generated on {new Date(latestReport.timestamp).toLocaleDateString()}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
                     <p className="text-sm text-gray-600">Overall Score</p>
-                    <p className="text-2xl font-bold text-gray-900">{latestReport.overallScore}%</p>
+                    <p className="text-2xl font-bold text-gray-900">{latestReport.metrics.overallScore}%</p>
                   </div>
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
                     <p className="text-sm text-gray-600">Communication</p>
-                    <p className="text-2xl font-bold text-blue-600">{latestReport.communicationScore}%</p>
+                    <p className="text-2xl font-bold text-blue-600">{latestReport.metrics.communicationScore}%</p>
                   </div>
                   <div className="text-center p-4 bg-gray-50 rounded-lg">
                     <p className="text-sm text-gray-600">Technical</p>
-                    <p className="text-2xl font-bold text-green-600">{latestReport.technicalScore}%</p>
+                    <p className="text-2xl font-bold text-green-600">{latestReport.metrics.technicalScore}%</p>
                   </div>
                 </div>
                 <div className="mt-4">
                   <h4 className="font-medium text-gray-900 mb-2">Key Improvements</h4>
                   <ul className="space-y-1">
-                    {latestReport.suggestions.slice(0, 3).map((suggestion, index) => (
-                      <li key={index} className="text-sm text-gray-600">• {suggestion}</li>
+                    {latestReport.recommendations.slice(0, 3).map((recommendation, index) => (
+                      <li key={index} className="text-sm text-gray-600">• {recommendation}</li>
                     ))}
                   </ul>
                 </div>
