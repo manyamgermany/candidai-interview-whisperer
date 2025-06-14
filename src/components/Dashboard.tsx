@@ -161,16 +161,17 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
             />
           </div>
 
-          {/* Scrollable content area */}
-          <div className="flex-1 space-y-6 min-h-0">
-            {/* Real-time Coaching above AI Assistant */}
+          {/* Real-time Coaching */}
+          <div className="mb-6 flex-shrink-0">
             <RealTimeCoaching 
               analytics={analytics}
               transcript={transcript}
               sessionActive={sessionActive}
             />
+          </div>
 
-            {/* AI Assistant above Chat Input */}
+          {/* AI Assistant - Stretches to fill available space */}
+          <div className="flex-1 mb-6 min-h-0">
             <AIAssistant 
               sessionActive={sessionActive}
               aiSuggestion={aiSuggestion}
@@ -181,7 +182,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
           </div>
 
           {/* Chat Input - Fixed at bottom */}
-          <div className="mt-8 flex-shrink-0 border-t border-pink-100 pt-4">
+          <div className="flex-shrink-0 border-t border-pink-100 pt-4">
             <ChatInput 
               onMessagesUpdate={setChatMessages}
               onLoadingChange={setIsChatLoading}
