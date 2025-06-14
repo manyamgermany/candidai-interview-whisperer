@@ -179,7 +179,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
                 className="border-pink-200 text-pink-600 hover:bg-pink-50"
               >
                 <FileText className="h-4 w-4 mr-2" />
-                Documents
+                Profile
               </Button>
               <Button 
                 variant="outline" 
