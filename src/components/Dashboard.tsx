@@ -9,7 +9,6 @@ import { LiveMetrics } from "./dashboard/LiveMetrics";
 import { AIAssistant } from "./dashboard/AIAssistant";
 import { TranscriptDisplay } from "./dashboard/TranscriptDisplay";
 import { Sidebar } from "./dashboard/Sidebar";
-import { QuickActions } from "./dashboard/QuickActions";
 import { ProfileManager } from "./profile/ProfileManager";
 import { PerformanceReports } from "./dashboard/PerformanceReports";
 import { InterviewSimulator } from "./dashboard/InterviewSimulator";
@@ -141,15 +140,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
       <DashboardHeader onNavigate={onNavigate} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Quick Actions */}
-        <div className="mb-8">
-          <QuickActions 
-            onNavigate={onNavigate}
-            onViewChange={setActiveView}
-          />
-        </div>
-
-        {/* Session Control */}
+        {/* Session Control - Main Focus */}
         <div className="mb-8">
           <SessionControl
             onSessionChange={setSessionActive}
@@ -161,7 +152,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
+          {/* Main Content - Focus on Active Session */}
           <div className="lg:col-span-2 space-y-6">
             {/* Real-time Stats */}
             {sessionActive && (
@@ -188,11 +179,8 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
             )}
           </div>
 
-          {/* Sidebar */}
-          <Sidebar 
-            onNavigate={onNavigate}
-            onViewChange={setActiveView}
-          />
+          {/* Sidebar - Minimal and Focused */}
+          <Sidebar onViewChange={setActiveView} />
         </div>
       </div>
     </div>
