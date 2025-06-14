@@ -78,6 +78,7 @@ const ProfileManager = ({ initialData, onNavigate, onProfileUpdate }: ProfileMan
       experience: [],
       education: [],
       certifications: [],
+      projects: [], // Add projects to default values
     },
   });
 
@@ -202,9 +203,10 @@ const ProfileManager = ({ initialData, onNavigate, onProfileUpdate }: ProfileMan
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Tabs defaultValue="personal" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="personal">Personal</TabsTrigger>
               <TabsTrigger value="professional">Professional</TabsTrigger>
+              <TabsTrigger value="projects">Projects</TabsTrigger>
               <TabsTrigger value="experience">Experience</TabsTrigger>
               <TabsTrigger value="education">Education</TabsTrigger>
             </TabsList>
@@ -215,6 +217,10 @@ const ProfileManager = ({ initialData, onNavigate, onProfileUpdate }: ProfileMan
 
             <TabsContent value="professional" className="space-y-6">
               <ProfessionalTab form={form} />
+            </TabsContent>
+
+            <TabsContent value="projects" className="space-y-6">
+              <ProjectsTab form={form} />
             </TabsContent>
 
             <TabsContent value="experience" className="space-y-6">
