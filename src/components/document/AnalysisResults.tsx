@@ -3,14 +3,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Upload, UserPlus, CheckCircle, Clock } from "lucide-react";
 import { DocumentAnalysis } from "@/services/documentProcessingService";
-import PersonalInfoCard from "./PersonalInfoCard";
-import SkillsAnalysisCard from "./SkillsAnalysisCard";
-import AIInsightsCard from "./AIInsightsCard";
+import EditableAnalysisCard from "./EditableAnalysisCard";
 
 interface AnalysisResultsProps {
   analysis?: DocumentAnalysis;
   onUploadClick: () => void;
   onManualCreate?: () => void;
+  onAnalysisUpdate?: (analysis: DocumentAnalysis) => void;
   isProcessing?: boolean;
   processingStep?: string;
 }
@@ -19,6 +18,7 @@ const AnalysisResults = ({
   analysis, 
   onUploadClick, 
   onManualCreate, 
+  onAnalysisUpdate,
   isProcessing = false,
   processingStep = ''
 }: AnalysisResultsProps) => {
@@ -72,7 +72,7 @@ const AnalysisResults = ({
     );
   }
 
-  // Show completed analysis
+  // Show completed analysis with edit functionality
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -88,9 +88,10 @@ const AnalysisResults = ({
         </div>
       </div>
       
-      <PersonalInfoCard personalInfo={analysis.personalInfo} />
-      <SkillsAnalysisCard skills={analysis.skills} />
-      <AIInsightsCard insights={analysis.insights} />
+      <EditableAnalysisCard 
+        analysis={analysis} 
+        onSave={onAnalysisUpdate || (() => {})} 
+      />
     </div>
   );
 };

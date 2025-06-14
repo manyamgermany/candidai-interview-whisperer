@@ -1,10 +1,10 @@
-
 import { DocumentAnalysis } from '@/types/documentTypes';
 
 export class ContentParsingService {
   parseResumeContent(text: string): Partial<DocumentAnalysis> {
-    console.log('Parsing resume content, text length:', text.length);
-    console.log('Text preview:', text.substring(0, 500));
+    console.log('=== CONTENT PARSING START ===');
+    console.log('Text length:', text.length);
+    console.log('Text preview:', text.substring(0, 300));
     
     const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
     const phoneRegex = /(\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
@@ -19,17 +19,23 @@ export class ContentParsingService {
     const lines = text.split('\n').filter(line => line.trim());
     let name = 'Name not found';
     
-    for (let i = 0; i < Math.min(3, lines.length); i++) {
+    // Find name in first few lines
+    for (let i = 0; i < Math.min(5, lines.length); i++) {
       const line = lines[i].trim();
       if (line && 
           !line.includes('@') && 
-          !line.match(/\d{3}/) && 
+          !line.match(/\+?\d{3}/) && 
           !line.toLowerCase().includes('resume') &&
           !line.toLowerCase().includes('cv') &&
+          !line.toLowerCase().includes('software') &&
+          !line.toLowerCase().includes('engineer') &&
+          !line.toLowerCase().includes('developer') &&
           line.length > 2 && 
           line.length < 50 &&
-          !/^\d/.test(line)) {
+          !/^\d/.test(line) &&
+          !/^(phone|email|location)/i.test(line)) {
         name = line;
+        console.log('Found name:', name);
         break;
       }
     }
@@ -40,14 +46,14 @@ export class ContentParsingService {
     const education = this.extractEducation(text);
     const certifications = this.extractCertifications(text);
 
-    console.log('Parsed data:', { 
-      name, 
-      email: emails[0], 
-      technicalSkills: technicalSkills.length, 
-      softSkills: softSkills.length,
-      experience: experience.length,
-      education: education.length
-    });
+    console.log('=== PARSING RESULTS ===');
+    console.log('Name:', name);
+    console.log('Email:', emails[0] || 'Not found');
+    console.log('Technical skills:', technicalSkills.length, technicalSkills);
+    console.log('Soft skills:', softSkills.length, softSkills);
+    console.log('Experience entries:', experience.length, experience);
+    console.log('Education entries:', education.length, education);
+    console.log('Certifications:', certifications.length, certifications);
 
     return {
       personalInfo: {
@@ -73,16 +79,197 @@ export class ContentParsingService {
       /Location:\s*([^\n]+)/i,
       /Address:\s*([^\n]+)/i,
       /Based in:\s*([^\n]+)/i,
-      /([\w\s]+,\s*[\w\s]+,?\s*[\w\s]*)/g
+      /([\w\s]+,\s*[\w\s]+(?:,\s*[\w\s]*)?)/g
     ];
 
     for (const pattern of locationPatterns) {
       const match = text.match(pattern);
-      if (match && match[1]) {
+      if (match && match[1] && match[1].length < 100) {
         return match[1].trim();
       }
     }
     return '';
+  }
+
+  private extractExperience(text: string): DocumentAnalysis['experience'] {
+    console.log('=== EXTRACTING EXPERIENCE ===');
+    const experience: DocumentAnalysis['experience'] = [];
+    
+    // Look for experience section
+    const experiencePatterns = [
+      /EXPERIENCE\n([\s\S]*?)(?=\n(?:EDUCATION|SKILLS|PROJECTS|CERTIFICATIONS|$))/i,
+      /WORK EXPERIENCE\n([\s\S]*?)(?=\n(?:EDUCATION|SKILLS|PROJECTS|CERTIFICATIONS|$))/i,
+      /PROFESSIONAL EXPERIENCE\n([\s\S]*?)(?=\n(?:EDUCATION|SKILLS|PROJECTS|CERTIFICATIONS|$))/i
+    ];
+
+    let experienceSection = '';
+    for (const pattern of experiencePatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        experienceSection = match[1];
+        console.log('Found experience section:', experienceSection.substring(0, 200));
+        break;
+      }
+    }
+
+    if (experienceSection) {
+      const lines = experienceSection.split('\n').filter(line => line.trim());
+      let currentJob: any = null;
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        console.log('Processing line:', trimmedLine);
+        
+        // Check if this is a job title/company line (contains |)
+        if (trimmedLine.includes('|') && !trimmedLine.startsWith('•') && !trimmedLine.startsWith('-')) {
+          // Save previous job if exists
+          if (currentJob) {
+            experience.push(currentJob);
+            console.log('Added job:', currentJob.title, 'at', currentJob.company);
+          }
+          
+          const parts = trimmedLine.split('|').map(p => p.trim());
+          currentJob = {
+            title: parts[0] || 'Position',
+            company: parts[1] || 'Company',
+            duration: parts[2] || 'Duration not specified',
+            highlights: []
+          };
+          console.log('Started new job:', currentJob);
+        }
+        // Check if this is a highlight/bullet point
+        else if ((trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.startsWith('*')) && currentJob) {
+          const highlight = trimmedLine.replace(/^[•\-*]\s*/, '');
+          currentJob.highlights.push(highlight);
+          console.log('Added highlight:', highlight);
+        }
+      }
+      
+      // Add the last job
+      if (currentJob) {
+        experience.push(currentJob);
+        console.log('Added final job:', currentJob.title, 'at', currentJob.company);
+      }
+    }
+
+    console.log('Final experience array:', experience.length, 'entries');
+    return experience;
+  }
+
+  private extractEducation(text: string): DocumentAnalysis['education'] {
+    console.log('=== EXTRACTING EDUCATION ===');
+    const education: DocumentAnalysis['education'] = [];
+    
+    // Look for education section
+    const educationPatterns = [
+      /EDUCATION\n([\s\S]*?)(?=\n(?:EXPERIENCE|SKILLS|PROJECTS|CERTIFICATIONS|$))/i,
+      /ACADEMIC BACKGROUND\n([\s\S]*?)(?=\n(?:EXPERIENCE|SKILLS|PROJECTS|CERTIFICATIONS|$))/i
+    ];
+
+    let educationSection = '';
+    for (const pattern of educationPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        educationSection = match[1];
+        console.log('Found education section:', educationSection);
+        break;
+      }
+    }
+    
+    if (educationSection) {
+      const lines = educationSection.split('\n').filter(line => 
+        line.trim() && 
+        !/^(EDUCATION|ACADEMIC BACKGROUND)$/i.test(line.trim()) &&
+        !line.trim().startsWith('SKILLS') &&
+        !line.trim().startsWith('PROJECTS')
+      );
+      
+      console.log('Education lines:', lines);
+      
+      // Look for degree and institution patterns
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // Skip empty lines
+        if (!line) continue;
+        
+        // Check if this looks like a degree line
+        if (line.includes('|')) {
+          const parts = line.split('|').map(p => p.trim());
+          if (parts.length >= 2) {
+            education.push({
+              degree: parts[0],
+              institution: parts[1],
+              year: parts[2] || 'Year not specified',
+              gpa: this.extractGPA(line)
+            });
+          }
+        } else if (line.toLowerCase().includes('bachelor') || 
+                   line.toLowerCase().includes('master') || 
+                   line.toLowerCase().includes('degree') ||
+                   line.toLowerCase().includes('university') ||
+                   line.toLowerCase().includes('college')) {
+          // This might be a degree line, check next line for institution
+          const nextLine = lines[i + 1]?.trim();
+          education.push({
+            degree: line,
+            institution: nextLine || 'Institution not specified',
+            year: this.extractYear(line + ' ' + (nextLine || '')),
+            gpa: this.extractGPA(line + ' ' + (nextLine || ''))
+          });
+          if (nextLine) i++; // Skip next line since we used it
+        }
+      }
+    }
+
+    console.log('Final education array:', education.length, 'entries', education);
+    return education;
+  }
+
+  private extractYear(text: string): string {
+    const yearMatch = text.match(/\b(19|20)\d{2}\b/);
+    return yearMatch ? yearMatch[0] : 'Year not specified';
+  }
+
+  private extractGPA(text: string): string | undefined {
+    const gpaMatch = text.match(/(?:GPA|CGPA):\s*([\d.]+)/i);
+    return gpaMatch ? gpaMatch[1] : undefined;
+  }
+
+  private extractCertifications(text: string): string[] {
+    console.log('=== EXTRACTING CERTIFICATIONS ===');
+    const certifications: string[] = [];
+    
+    const certPatterns = [
+      /CERTIFICATIONS\n([\s\S]*?)(?=\n(?:EXPERIENCE|EDUCATION|SKILLS|PROJECTS|$))/i,
+      /CERTIFICATES\n([\s\S]*?)(?=\n(?:EXPERIENCE|EDUCATION|SKILLS|PROJECTS|$))/i
+    ];
+    
+    let certSection = '';
+    for (const pattern of certPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        certSection = match[1];
+        break;
+      }
+    }
+    
+    if (certSection) {
+      const lines = certSection.split('\n').filter(line => 
+        line.trim() && 
+        !/^(CERTIFICATIONS|CERTIFICATES)$/i.test(line.trim())
+      );
+      
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('•') && !trimmed.startsWith('-')) {
+          certifications.push(trimmed);
+        }
+      });
+    }
+
+    console.log('Found certifications:', certifications);
+    return certifications;
   }
 
   private extractTechnicalSkills(text: string): string[] {
@@ -132,112 +319,6 @@ export class ContentParsingService {
     });
     
     return [...new Set(foundSkills)];
-  }
-
-  private extractExperience(text: string): DocumentAnalysis['experience'] {
-    const experience: DocumentAnalysis['experience'] = [];
-    
-    const sections = text.split(/(?=EXPERIENCE|WORK EXPERIENCE|PROFESSIONAL EXPERIENCE)/i);
-    const experienceSection = sections.find(section => 
-      /^(EXPERIENCE|WORK EXPERIENCE|PROFESSIONAL EXPERIENCE)/i.test(section)
-    );
-    
-    if (experienceSection) {
-      const lines = experienceSection.split('\n').filter(line => line.trim());
-      let currentJob: any = null;
-      
-      for (const line of lines) {
-        const trimmedLine = line.trim();
-        
-        if (/^(EXPERIENCE|WORK EXPERIENCE|PROFESSIONAL EXPERIENCE)$/i.test(trimmedLine)) {
-          continue;
-        }
-        
-        if (trimmedLine.includes('|') && !trimmedLine.startsWith('•') && !trimmedLine.startsWith('-')) {
-          if (currentJob) {
-            experience.push(currentJob);
-          }
-          
-          const parts = trimmedLine.split('|').map(p => p.trim());
-          currentJob = {
-            title: parts[0] || 'Position',
-            company: parts[1] || 'Company',
-            duration: parts[2] || 'Duration not specified',
-            highlights: []
-          };
-        }
-        else if ((trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) && currentJob) {
-          currentJob.highlights.push(trimmedLine.replace(/^[•-]\s*/, ''));
-        }
-      }
-      
-      if (currentJob) {
-        experience.push(currentJob);
-      }
-    }
-
-    return experience;
-  }
-
-  private extractEducation(text: string): DocumentAnalysis['education'] {
-    const education: DocumentAnalysis['education'] = [];
-    
-    const sections = text.split(/(?=EDUCATION|ACADEMIC BACKGROUND)/i);
-    const educationSection = sections.find(section => 
-      /^(EDUCATION|ACADEMIC BACKGROUND)/i.test(section)
-    );
-    
-    if (educationSection) {
-      const lines = educationSection.split('\n').filter(line => 
-        line.trim() && !/^(EDUCATION|ACADEMIC BACKGROUND)$/i.test(line.trim())
-      );
-      
-      for (let i = 0; i < lines.length; i += 2) {
-        const degreeLine = lines[i]?.trim();
-        const institutionLine = lines[i + 1]?.trim();
-        
-        if (degreeLine) {
-          const parts = institutionLine?.split('|') || [];
-          education.push({
-            degree: degreeLine,
-            institution: parts[0]?.trim() || 'Institution not specified',
-            year: parts[1]?.trim() || 'Year not specified',
-            gpa: this.extractGPA(educationSection)
-          });
-        }
-      }
-    }
-
-    return education;
-  }
-
-  private extractGPA(text: string): string | undefined {
-    const gpaMatch = text.match(/(?:GPA|CGPA):\s*([\d.]+)/i);
-    return gpaMatch ? gpaMatch[1] : undefined;
-  }
-
-  private extractCertifications(text: string): string[] {
-    const certifications: string[] = [];
-    
-    const sections = text.split(/(?=CERTIFICATIONS|CERTIFICATES)/i);
-    const certSection = sections.find(section => 
-      /^(CERTIFICATIONS|CERTIFICATES)/i.test(section)
-    );
-    
-    if (certSection) {
-      const lines = certSection.split('\n').filter(line => 
-        line.trim() && !/^(CERTIFICATIONS|CERTIFICATES)$/i.test(line.trim())
-      );
-      
-      lines.forEach(line => {
-        const trimmed = line.trim();
-        if (trimmed && !trimmed.startsWith('•') && !trimmed.startsWith('-')) {
-          certifications.push(trimmed);
-        }
-      });
-    }
-
-    return certifications;
   }
 }
 

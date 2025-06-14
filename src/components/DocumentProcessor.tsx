@@ -137,29 +137,52 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
     URL.revokeObjectURL(url);
   };
 
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      console.log('File input change:', e.target.files.length, 'files');
-      handleFiles(e.target.files);
+  const handleFileInputClick = () => {
+    if (isProcessing) {
+      console.log('File input click blocked - processing in progress');
+      return;
+    }
+    console.log('Triggering file input click from DocumentProcessor');
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
     }
   };
 
-  const handleFileInputClick = () => {
-    if (isProcessing) return;
-    console.log('File input clicked');
-    fileInputRef.current?.click();
+  const handleAnalysisUpdate = async (updatedAnalysis: any) => {
+    try {
+      const latestDoc = uploadedFiles.find(f => f.status === 'completed' && f.analysis);
+      if (latestDoc) {
+        const updatedDoc = { ...latestDoc, analysis: updatedAnalysis };
+        await documentProcessingService.saveDocument(updatedDoc);
+        setUploadedFiles(prev => prev.map(doc => 
+          doc.id === latestDoc.id ? updatedDoc : doc
+        ));
+        toast({
+          title: "Analysis Updated",
+          description: "Your profile changes have been saved.",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update analysis:', error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to save your changes.",
+        variant: "destructive",
+      });
+    }
   };
 
   const completedFiles = uploadedFiles.filter(f => f.status === 'completed');
   const latestAnalysis = manualProfile || completedFiles[0]?.analysis;
 
-  console.log('Current state:', {
+  console.log('DocumentProcessor render state:', {
     uploadedFiles: uploadedFiles.length,
     completedFiles: completedFiles.length,
     hasLatestAnalysis: !!latestAnalysis,
     isProcessing,
     processingComplete,
-    dragActive
+    dragActive,
+    viewMode
   });
 
   if (isLoading) {
@@ -238,19 +261,26 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
               analysis={latestAnalysis}
               onUploadClick={handleFileInputClick}
               onManualCreate={() => setViewMode('manual-form')}
+              onAnalysisUpdate={handleAnalysisUpdate}
               isProcessing={isProcessing}
               processingStep={processingStep}
             />
           </div>
         </div>
 
-        {/* Hidden file input */}
+        {/* Hidden file input for manual triggering */}
         <input
           ref={fileInputRef}
           type="file"
           accept=".pdf,.txt,.docx,.md"
           multiple
-          onChange={handleFileInputChange}
+          onChange={(e) => {
+            console.log('Hidden file input changed:', e.target.files?.length);
+            if (e.target.files && e.target.files.length > 0) {
+              handleFiles(e.target.files);
+              e.target.value = ''; // Reset for repeated uploads
+            }
+          }}
           className="hidden"
           disabled={isProcessing}
         />

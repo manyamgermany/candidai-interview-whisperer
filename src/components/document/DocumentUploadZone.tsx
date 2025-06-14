@@ -1,4 +1,3 @@
-
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,23 +31,32 @@ const DocumentUploadZone = ({
 }: DocumentUploadZoneProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = () => {
+  const handleFileSelect = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     if (isProcessing) {
       console.log('Upload blocked - processing in progress');
       return;
     }
-    console.log('Opening file selector...');
-    fileInputRef.current?.click();
+    
+    console.log('Triggering file input click...', fileInputRef.current);
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log('File input changed:', {
       filesCount: e.target.files?.length || 0,
-      isProcessing
+      isProcessing,
+      files: e.target.files ? Array.from(e.target.files).map(f => f.name) : []
     });
     
     if (e.target.files && e.target.files.length > 0 && !isProcessing) {
-      console.log('Files selected via input:', Array.from(e.target.files).map(f => f.name));
+      console.log('Processing files:', Array.from(e.target.files).map(f => f.name));
       onFilesSelected(e.target.files);
       // Reset the input value so the same file can be selected again
       e.target.value = '';
@@ -92,7 +100,7 @@ const DocumentUploadZone = ({
     e.stopPropagation();
     console.log('Drop zone clicked, processing status:', isProcessing);
     if (!isProcessing) {
-      handleFileSelect();
+      handleFileSelect(e);
     }
   };
 
@@ -158,10 +166,7 @@ const DocumentUploadZone = ({
                   Your resume has been successfully processed
                 </p>
                 <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleFileSelect();
-                  }}
+                  onClick={handleFileSelect}
                   variant="outline"
                   className="border-green-300 text-green-700 hover:bg-green-100"
                 >
@@ -180,12 +185,10 @@ const DocumentUploadZone = ({
                 Supports PDF, TXT, DOCX, MD files up to 10MB
               </p>
               <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleFileSelect();
-                }}
+                onClick={handleFileSelect}
                 disabled={isProcessing}
                 className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white"
+                type="button"
               >
                 Choose File
               </Button>
