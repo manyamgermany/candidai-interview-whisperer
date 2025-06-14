@@ -1,9 +1,8 @@
 
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, MessageSquare } from "lucide-react";
+import { Send } from "lucide-react";
 import { aiService } from "@/services/aiService";
 import { useToast } from "@/hooks/use-toast";
 
@@ -75,37 +74,22 @@ export const ChatInput = ({ onMessagesUpdate, onLoadingChange }: ChatInputProps)
   };
 
   return (
-    <Card className="border-pink-100">
-      <CardContent className="p-4">
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2 mb-3">
-            <MessageSquare className="h-5 w-5 text-pink-600" />
-            <h3 className="text-lg font-semibold">Quick AI Assistant</h3>
-          </div>
-
-          <form onSubmit={handleSubmit} className="flex space-x-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about interviews, keywords, or topics..."
-              className="flex-1"
-              disabled={isLoading}
-            />
-            <Button 
-              type="submit" 
-              size="sm"
-              disabled={isLoading || !input.trim()}
-              className="bg-pink-500 hover:bg-pink-600 text-white"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
-          
-          <p className="text-xs text-gray-500 text-center">
-            Type keywords or questions to get instant AI suggestions for your interview
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+    <form onSubmit={handleSubmit} className="flex space-x-2">
+      <Input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="Ask about interviews, keywords, or topics..."
+        className="flex-1"
+        disabled={isLoading}
+      />
+      <Button 
+        type="submit" 
+        size="sm"
+        disabled={isLoading || !input.trim()}
+        className="bg-pink-500 hover:bg-pink-600 text-white"
+      >
+        <Send className="h-4 w-4" />
+      </Button>
+    </form>
   );
 };
