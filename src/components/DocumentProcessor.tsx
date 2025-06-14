@@ -30,6 +30,7 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processingStep, setProcessingStep] = useState('');
+  const [processingComplete, setProcessingComplete] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('main');
   const [manualProfile, setManualProfile] = useState<DocumentAnalysis | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -44,6 +45,7 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
       setIsLoading(true);
       const documents = await documentProcessingService.getDocuments();
       setUploadedFiles(documents);
+      console.log('Loaded documents:', documents.length);
     } catch (error) {
       console.error('Failed to load documents:', error);
       toast({
@@ -144,9 +146,12 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
   };
 
   const handleFiles = async (files: FileList) => {
+    console.log('Starting file processing for', files.length, 'files');
+    
     setIsProcessing(true);
     setProcessingProgress(0);
     setProcessingStep('Preparing to process documents...');
+    setProcessingComplete(false);
     
     for (const file of Array.from(files)) {
       const supportedTypes = [
@@ -180,47 +185,35 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
       }
 
       try {
-        const processingDoc: ProcessedDocument = {
-          id: Math.random().toString(36).substr(2, 9),
-          name: file.name,
-          type: file.type || 'application/octet-stream',
-          size: file.size,
-          status: 'processing',
-          uploadedAt: Date.now(),
-          processingStep: 'Starting analysis...'
-        };
+        console.log('Processing file:', file.name);
         
-        setUploadedFiles(prev => [...prev, processingDoc]);
-
         toast({
           title: "Processing Started",
           description: `Starting analysis of ${file.name}...`,
         });
 
-        // Process document with progress callback
         const processedDoc = await documentProcessingService.processDocument(
           file,
           (step: string, progress: number) => {
+            console.log('Progress update:', step, progress + '%');
             setProcessingStep(step);
             setProcessingProgress(progress);
-            
-            // Update the document in the list with current progress
-            setUploadedFiles(prev => 
-              prev.map(doc => doc.id === processingDoc.id 
-                ? { ...doc, processingStep: step } 
-                : doc)
-            );
           }
         );
         
-        setUploadedFiles(prev => 
-          prev.map(doc => doc.id === processingDoc.id ? processedDoc : doc)
-        );
+        console.log('File processed:', processedDoc.status, processedDoc.analysis ? 'with analysis' : 'without analysis');
+        
+        // Update the files list with the processed document
+        setUploadedFiles(prev => {
+          const filtered = prev.filter(doc => doc.id !== processedDoc.id);
+          return [processedDoc, ...filtered];
+        });
 
-        if (processedDoc.status === 'completed') {
+        if (processedDoc.status === 'completed' && processedDoc.analysis) {
+          setProcessingComplete(true);
           toast({
-            title: "Document Processed",
-            description: `${file.name} has been successfully analyzed.`,
+            title: "Document Processed Successfully",
+            description: `${file.name} has been analyzed and is ready for use.`,
           });
         } else {
           toast({
@@ -231,11 +224,6 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
         }
       } catch (error) {
         console.error('File processing error:', error);
-        setUploadedFiles(prev => 
-          prev.map(doc => doc.name === file.name && doc.status === 'processing' 
-            ? { ...doc, status: 'error' as const, processingStep: 'Processing failed' } 
-            : doc)
-        );
         toast({
           title: "Processing Error",
           description: `Error processing ${file.name}.`,
@@ -286,7 +274,6 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
   };
 
   const handleManualProfileSave = (analysis: DocumentAnalysis) => {
-    // Create a mock processed document for the manual profile
     const manualDoc: ProcessedDocument = {
       id: 'manual-profile-' + Date.now(),
       name: 'Manual Profile',
@@ -308,7 +295,15 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
   };
 
   const completedFiles = uploadedFiles.filter(f => f.status === 'completed');
-  const latestAnalysis = manualProfile || completedFiles[completedFiles.length - 1]?.analysis;
+  const latestAnalysis = manualProfile || completedFiles[0]?.analysis;
+
+  console.log('Current state:', {
+    uploadedFiles: uploadedFiles.length,
+    completedFiles: completedFiles.length,
+    hasLatestAnalysis: !!latestAnalysis,
+    isProcessing,
+    processingComplete
+  });
 
   if (isLoading) {
     return (
@@ -424,7 +419,6 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Upload & Creation Section */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Profile Creation Options */}
             <div className="grid grid-cols-1 gap-4">
               <DocumentUploadZone
                 dragActive={dragActive}
@@ -436,6 +430,7 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
                 isProcessing={isProcessing}
                 processingStep={processingStep}
                 processingProgress={processingProgress}
+                processingComplete={processingComplete}
               />
               
               <div className="relative">
@@ -478,6 +473,8 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
               analysis={latestAnalysis}
               onUploadClick={() => fileInputRef.current?.click()}
               onManualCreate={() => setViewMode('manual-form')}
+              isProcessing={isProcessing}
+              processingStep={processingStep}
             />
           </div>
         </div>
