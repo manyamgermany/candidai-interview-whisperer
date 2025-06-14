@@ -5,14 +5,11 @@ import { AIResponse } from "@/services/aiService";
 import { PerformanceReport } from "@/types/interviewTypes";
 import { DashboardHeader } from "./dashboard/DashboardHeader";
 import { SessionControl } from "./dashboard/SessionControl";
-import { LiveMetrics } from "./dashboard/LiveMetrics";
 import { AIAssistant } from "./dashboard/AIAssistant";
-import { TranscriptDisplay } from "./dashboard/TranscriptDisplay";
-import { Sidebar } from "./dashboard/Sidebar";
+import { RealTimeCoaching } from "./dashboard/RealTimeCoaching";
 import { ProfileManager } from "./profile/ProfileManager";
 import { PerformanceReports } from "./dashboard/PerformanceReports";
 import { InterviewSimulator } from "./dashboard/InterviewSimulator";
-import { RealTimeCoaching } from "./dashboard/RealTimeCoaching";
 import { SessionHistory } from "./dashboard/SessionHistory";
 import { AIConfigPanel } from "./dashboard/AIConfigPanel";
 import { ChatInput } from "./dashboard/ChatInput";
@@ -50,6 +47,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
     setActiveView('reports');
   };
 
+  // Handle other views
   if (activeView === 'profile') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50">
@@ -145,11 +143,12 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
     );
   }
 
+  // Main dashboard view - clean and minimalistic
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50">
       <DashboardHeader onNavigate={onNavigate} />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Session Control - Main Focus */}
         <div className="mb-8">
           <SessionControl
@@ -161,38 +160,23 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
           />
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content - Focus on Active Session */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Real-time Stats */}
-            {sessionActive && (
-              <LiveMetrics analytics={analytics} transcript={transcript} />
-            )}
+        {/* Main Content - Focused on Interview */}
+        <div className="space-y-6">
+          {/* Real-time Coaching */}
+          <RealTimeCoaching 
+            analytics={analytics}
+            transcript={transcript}
+            sessionActive={sessionActive}
+          />
 
-            {/* Real-time Coaching */}
-            <RealTimeCoaching 
-              analytics={analytics}
-              transcript={transcript}
-              sessionActive={sessionActive}
-            />
-
-            {/* AI Suggestions */}
-            <AIAssistant 
-              sessionActive={sessionActive}
-              aiSuggestion={aiSuggestion}
-              analytics={analytics}
-              chatMessages={chatMessages}
-              isLoading={isChatLoading}
-            />
-
-            {/* Transcript Display */}
-            {sessionActive && transcript && (
-              <TranscriptDisplay transcript={transcript} />
-            )}
-          </div>
-
-          {/* Sidebar - Minimal and Focused */}
-          <Sidebar />
+          {/* AI Assistant */}
+          <AIAssistant 
+            sessionActive={sessionActive}
+            aiSuggestion={aiSuggestion}
+            analytics={analytics}
+            chatMessages={chatMessages}
+            isLoading={isChatLoading}
+          />
         </div>
 
         {/* Chat Input at the Bottom */}
