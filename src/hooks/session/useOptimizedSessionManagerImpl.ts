@@ -23,15 +23,7 @@ export const useOptimizedSessionManager = (props?: { onPerformanceReportGenerate
     lastQuestionTimeRef
   });
 
-  const actions = useSessionActions({
-    sessionState,
-    setSessionState,
-    transcriptRef,
-    segmentsRef,
-    lastQuestionTimeRef,
-    callbacks,
-    onPerformanceReportGenerated: props?.onPerformanceReportGenerated,
-  });
+  const actions = useSessionActions();
 
   useEffect(() => {
     let interval: NodeJS.Timeout;

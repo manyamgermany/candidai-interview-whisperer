@@ -1,9 +1,7 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { AIResponse } from '@/types';
 import { SpeechAnalytics } from '@/services/speechService';
-import { AIResponse } from '@/services/aiService';
-import { SessionData, StorageSettings } from '@/types/storageTypes';
 
 interface SessionState {
   isActive: boolean;

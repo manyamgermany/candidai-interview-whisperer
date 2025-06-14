@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { aiService } from '@/services/aiService';
 import { screenshotAnalysisService } from '@/services/screenshotAnalysisService';
@@ -21,8 +22,9 @@ interface AnalyticsData {
 
 export const useSessionActions = () => {
 
-  const startSession = useCallback(async (sessionId: string) => {
+  const startSession = useCallback(async () => {
     try {
+      const sessionId = Date.now().toString();
       console.log('Starting session:', sessionId);
       // Initialize session logic here
       return { success: true, sessionId };
@@ -32,8 +34,9 @@ export const useSessionActions = () => {
     }
   }, []);
 
-  const pauseSession = useCallback(async (sessionId: string) => {
+  const pauseSession = useCallback(async () => {
     try {
+      const sessionId = Date.now().toString();
       console.log('Pausing session:', sessionId);
       // Pause session logic here
       return { success: true, sessionId };
@@ -43,13 +46,24 @@ export const useSessionActions = () => {
     }
   }, []);
 
-  const stopSession = useCallback(async (sessionId: string) => {
+  const stopSession = useCallback(async () => {
     try {
+      const sessionId = Date.now().toString();
       console.log('Stopping session:', sessionId);
       // Stop session logic here
       return { success: true, sessionId };
     } catch (error) {
       console.error('Error stopping session:', error);
+      return { success: false, error };
+    }
+  }, []);
+
+  const toggleRecording = useCallback(async () => {
+    try {
+      console.log('Toggling recording');
+      return { success: true };
+    } catch (error) {
+      console.error('Error toggling recording:', error);
       return { success: false, error };
     }
   }, []);
@@ -118,11 +132,18 @@ export const useSessionActions = () => {
     }
   }, []);
 
+  const setSuggestion = useCallback((suggestion: any) => {
+    console.log('Setting AI suggestion:', suggestion);
+  }, []);
+
   return {
     startSession,
     pauseSession,
     stopSession,
+    toggleRecording,
     analyzeSession,
-    generateReport
+    generateReport,
+    setSuggestion,
+    isGeneratingReport: false
   };
 };

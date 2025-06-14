@@ -1,8 +1,7 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Brain } from "lucide-react";
-import { AIResponse } from "@/services/aiService";
+import { AIResponse } from "@/types";
 import { SpeechAnalytics } from "@/services/speechService";
 import { ChatMessage } from "@/types/chatTypes";
 

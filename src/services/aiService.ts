@@ -1,4 +1,5 @@
-import { AISuggestion } from "@/types";
+
+import { AISuggestion, AIResponse } from "@/types";
 
 export class AIService {
   private apiKey: string | null = null;
@@ -39,8 +40,9 @@ export class AIService {
     return mockSuggestion;
   }
 
-  async configure(config: any): Promise<void> {
-    console.log('Configuring AI service with:', config);
+  async configure(provider: string, apiKey?: string): Promise<void> {
+    console.log('Configuring AI service with:', provider);
+    const config = { provider, apiKey };
     // Store configuration
     if (typeof chrome !== 'undefined' && chrome.storage) {
       await chrome.storage.local.set({ aiConfig: config });
@@ -64,3 +66,4 @@ export class AIService {
 }
 
 export const aiService = new AIService();
+export type { AISuggestion, AIResponse };
