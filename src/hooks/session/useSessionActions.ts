@@ -93,7 +93,12 @@ export const useSessionActions = ({
       const report = await aiService.generatePerformanceReport(
         transcriptRef.current,
         sessionState.analytics,
-        segmentsRef.current,
+        segmentsRef.current.map(s => ({
+          id: s.id,
+          text: s.text,
+          timestamp: s.timestamp,
+          confidence: s.confidence
+        })),
         durationInMinutes,
         sessionId
       );

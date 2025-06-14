@@ -38,12 +38,12 @@ export const SessionControl = memo(({
 
   const handleScreenshotAnalysis = (analysis: any) => {
     onAISuggestionChange({
-      text: analysis.insights,
+      id: Date.now().toString(),
+      suggestion: analysis.insights,
       confidence: analysis.confidence,
-      framework: 'visual-analysis',
       type: 'screenshot-analysis',
-      priority: 'medium',
-      id: Date.now().toString()
+      timestamp: Date.now(),
+      context: 'Visual analysis from screenshot'
     });
   };
 

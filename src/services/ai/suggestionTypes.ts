@@ -3,7 +3,7 @@ export interface AISuggestion {
   id: string;
   suggestion: string;
   confidence: number;
-  type: 'answer' | 'clarification' | 'follow-up';
+  type: 'answer' | 'clarification' | 'follow-up' | 'screenshot-analysis';
   timestamp: number;
   context: string;
 }

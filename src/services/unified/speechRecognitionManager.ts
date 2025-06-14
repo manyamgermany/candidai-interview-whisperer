@@ -117,6 +117,10 @@ export class SpeechRecognitionManager {
     }
   }
 
+  isActive(): boolean {
+    return this.isCapturing;
+  }
+
   getConfidenceThreshold(): number {
     return this.confidenceThreshold;
   }

@@ -9,6 +9,7 @@ export interface SpeechAnalytics {
 }
 
 export interface TranscriptSegment {
+  id: string;
   text: string;
   timestamp: number;
   confidence: number;

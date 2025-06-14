@@ -1,3 +1,4 @@
+
 import { SpeechAnalyticsCalculator, SpeechAnalytics, TranscriptSegment } from './speech/speechAnalytics';
 import { AudioAnalysis, UnifiedAudioConfig } from './unified/audioTypes';
 import { QuestionDetector } from './unified/questionDetector';
@@ -42,6 +43,7 @@ export class UnifiedAudioService {
         finalTranscript += transcript + ' ';
         
         const segment: TranscriptSegment = {
+          id: `${currentTime}-${i}`,
           text: transcript,
           timestamp: currentTime,
           confidence,
