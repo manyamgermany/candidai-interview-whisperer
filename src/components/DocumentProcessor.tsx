@@ -28,6 +28,8 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
   const [dragActive, setDragActive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingStep, setProcessingStep] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('main');
   const [manualProfile, setManualProfile] = useState<DocumentAnalysis | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -143,6 +145,8 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
 
   const handleFiles = async (files: FileList) => {
     setIsProcessing(true);
+    setProcessingProgress(0);
+    setProcessingStep('Preparing to process documents...');
     
     for (const file of Array.from(files)) {
       const supportedTypes = [
@@ -182,7 +186,8 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
           type: file.type || 'application/octet-stream',
           size: file.size,
           status: 'processing',
-          uploadedAt: Date.now()
+          uploadedAt: Date.now(),
+          processingStep: 'Starting analysis...'
         };
         
         setUploadedFiles(prev => [...prev, processingDoc]);
@@ -192,7 +197,21 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
           description: `Starting analysis of ${file.name}...`,
         });
 
-        const processedDoc = await documentProcessingService.processDocument(file);
+        // Process document with progress callback
+        const processedDoc = await documentProcessingService.processDocument(
+          file,
+          (step: string, progress: number) => {
+            setProcessingStep(step);
+            setProcessingProgress(progress);
+            
+            // Update the document in the list with current progress
+            setUploadedFiles(prev => 
+              prev.map(doc => doc.id === processingDoc.id 
+                ? { ...doc, processingStep: step } 
+                : doc)
+            );
+          }
+        );
         
         setUploadedFiles(prev => 
           prev.map(doc => doc.id === processingDoc.id ? processedDoc : doc)
@@ -214,7 +233,7 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
         console.error('File processing error:', error);
         setUploadedFiles(prev => 
           prev.map(doc => doc.name === file.name && doc.status === 'processing' 
-            ? { ...doc, status: 'error' as const } 
+            ? { ...doc, status: 'error' as const, processingStep: 'Processing failed' } 
             : doc)
         );
         toast({
@@ -226,6 +245,8 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
     }
     
     setIsProcessing(false);
+    setProcessingProgress(0);
+    setProcessingStep('');
   };
 
   const removeFile = async (id: string) => {
@@ -379,7 +400,10 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
               {isProcessing && (
                 <div className="flex items-center space-x-2 text-sm text-blue-600 bg-blue-100 px-3 py-1 rounded-full">
                   <RefreshCw className="h-4 w-4 animate-spin" />
-                  <span>Processing...</span>
+                  <span>{processingStep || 'Processing...'}</span>
+                  {processingProgress > 0 && (
+                    <span className="text-xs">({processingProgress}%)</span>
+                  )}
                 </div>
               )}
               <Button
@@ -410,6 +434,8 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
                 onDrop={handleDrop}
                 onFilesSelected={handleFiles}
                 isProcessing={isProcessing}
+                processingStep={processingStep}
+                processingProgress={processingProgress}
               />
               
               <div className="relative">
@@ -451,6 +477,7 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
             <AnalysisResults
               analysis={latestAnalysis}
               onUploadClick={() => fileInputRef.current?.click()}
+              onManualCreate={() => setViewMode('manual-form')}
             />
           </div>
         </div>

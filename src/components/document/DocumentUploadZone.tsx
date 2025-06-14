@@ -14,6 +14,8 @@ interface DocumentUploadZoneProps {
   onDrop: (e: React.DragEvent) => void;
   onFilesSelected: (files: FileList) => void;
   isProcessing?: boolean;
+  processingStep?: string;
+  processingProgress?: number;
 }
 
 const DocumentUploadZone = ({
@@ -23,7 +25,9 @@ const DocumentUploadZone = ({
   onDragOver,
   onDrop,
   onFilesSelected,
-  isProcessing = false
+  isProcessing = false,
+  processingStep = '',
+  processingProgress = 0
 }: DocumentUploadZoneProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -44,7 +48,7 @@ const DocumentUploadZone = ({
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           {isProcessing ? (
-            <Loader2 className="h-5 w-5 text-pink-600 animate-spin" />
+            <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
           ) : (
             <Upload className="h-5 w-5 text-pink-600" />
           )}
@@ -54,7 +58,7 @@ const DocumentUploadZone = ({
         </CardTitle>
         <CardDescription>
           {isProcessing 
-            ? 'Please wait while we analyze your documents...'
+            ? processingStep || 'Please wait while we analyze your documents...'
             : 'Upload your resume for AI-powered analysis and insights'
           }
         </CardDescription>
@@ -78,12 +82,15 @@ const DocumentUploadZone = ({
               <Loader2 className="h-12 w-12 text-blue-400 mx-auto animate-spin" />
               <div>
                 <p className="text-sm font-medium text-gray-900 mb-2">
-                  Processing your documents...
+                  {processingStep || 'Processing your documents...'}
                 </p>
                 <p className="text-xs text-gray-500 mb-4">
                   This may take a few moments
                 </p>
-                <Progress value={60} className="w-full max-w-xs mx-auto" />
+                <Progress value={processingProgress} className="w-full max-w-xs mx-auto" />
+                <div className="text-xs text-gray-500 mt-2">
+                  {processingProgress}% complete
+                </div>
               </div>
             </div>
           ) : (

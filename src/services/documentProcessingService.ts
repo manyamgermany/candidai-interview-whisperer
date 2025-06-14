@@ -44,6 +44,7 @@ export interface ProcessedDocument {
   uploadedAt: number;
   analysis?: DocumentAnalysis;
   rawText?: string;
+  processingStep?: string;
 }
 
 class DocumentProcessingService {
@@ -52,28 +53,32 @@ class DocumentProcessingService {
       const reader = new FileReader();
       
       if (file.type === 'application/pdf') {
-        // For PDF files - in production, you'd use a library like pdf-parse
         reader.onload = () => {
-          // Simulate PDF text extraction
-          resolve(`Resume Content: ${file.name}
+          // In a real implementation, you'd use a PDF parsing library
+          // For now, simulate extraction by reading the file name and creating realistic content
+          const mockContent = `${file.name} - Resume Document
+
 John Doe
-Senior Software Engineer
+Software Engineer
 Email: john.doe@email.com
 Phone: (555) 123-4567
 LinkedIn: linkedin.com/in/johndoe
-GitHub: github.com/johndoe
+Location: San Francisco, CA
+
+PROFESSIONAL SUMMARY
+Experienced software engineer with 5+ years developing web applications using modern technologies.
 
 EXPERIENCE
 Senior Software Engineer | Tech Corp | 2020-Present
-• Led development of React-based web applications
-• Managed team of 5 developers
-• Implemented CI/CD pipelines using Docker and AWS
-• Reduced deployment time by 60%
+• Developed React-based web applications serving 100K+ users
+• Led team of 5 developers in agile environment
+• Implemented CI/CD pipelines reducing deployment time by 60%
+• Built microservices architecture using Node.js and Docker
 
 Software Developer | StartupXYZ | 2018-2020
-• Developed full-stack applications using Node.js and React
-• Built RESTful APIs and microservices
-• Collaborated with cross-functional teams
+• Created full-stack applications with React and Node.js
+• Designed RESTful APIs and database schemas
+• Collaborated with cross-functional teams of 10+ members
 
 EDUCATION
 Bachelor of Science in Computer Science
@@ -81,12 +86,13 @@ University of Technology | 2018
 GPA: 3.8/4.0
 
 SKILLS
-Technical: JavaScript, TypeScript, React, Node.js, Python, AWS, Docker, Kubernetes, MongoDB, PostgreSQL, Git
-Soft Skills: Leadership, Team Management, Problem Solving, Communication, Agile Development
+Technical: JavaScript, TypeScript, React, Node.js, Python, AWS, Docker, MongoDB, PostgreSQL, Git
+Soft: Leadership, Problem Solving, Communication, Team Collaboration
 
 CERTIFICATIONS
 AWS Certified Solutions Architect
-Certified Scrum Master`);
+Certified Scrum Master`;
+          resolve(mockContent);
         };
         reader.onerror = reject;
         reader.readAsArrayBuffer(file);
@@ -95,37 +101,56 @@ Certified Scrum Master`);
         reader.onerror = reject;
         reader.readAsText(file);
       } else if (file.name.endsWith('.docx') || file.type.includes('wordprocessingml')) {
-        // For DOCX files - in production, you'd use a library like mammoth.js
         reader.onload = () => {
-          // Simulate DOCX text extraction
-          resolve(`Resume Content from ${file.name}
+          // Simulate DOCX extraction with more realistic parsing
+          const content = `Resume - ${file.name}
+
 Jane Smith
 Product Manager
 Email: jane.smith@email.com
 Phone: (555) 987-6543
 LinkedIn: linkedin.com/in/janesmith
+Location: New York, NY
+
+PROFESSIONAL SUMMARY
+Strategic product manager with 6+ years experience driving product development and growth.
 
 EXPERIENCE
 Senior Product Manager | Innovation Labs | 2021-Present
-• Led product strategy for B2B SaaS platform
-• Managed product roadmap and feature prioritization
-• Coordinated with engineering, design, and marketing teams
-• Increased user engagement by 40%
+• Led product strategy for B2B SaaS platform with $2M ARR
+• Managed product roadmap and feature prioritization for 50+ features
+• Coordinated with engineering, design, and marketing teams of 15+ people
+• Increased user engagement by 40% through data-driven feature development
 
 Product Manager | Digital Solutions | 2019-2021
-• Defined product requirements and user stories
-• Conducted market research and competitive analysis
-• Worked closely with UX/UI designers
+• Defined product requirements and user stories for mobile app
+• Conducted market research and competitive analysis in fintech space
+• Worked closely with UX/UI designers on user experience optimization
+• Launched 3 major product features resulting in 25% revenue increase
+
+Business Analyst | Consulting Firm | 2018-2019
+• Analyzed business processes and recommended improvements
+• Created detailed documentation and process flows
+• Collaborated with stakeholders across multiple departments
 
 EDUCATION
 MBA in Business Administration
 Business School | 2019
+Concentration: Technology Management
+
 Bachelor of Arts in Psychology
 Liberal Arts College | 2017
+Magna Cum Laude, GPA: 3.9/4.0
 
 SKILLS
-Technical: Product Management, Data Analysis, SQL, Tableau, Jira, Figma
-Soft Skills: Strategic Thinking, Leadership, Communication, Analytical Skills, Project Management`);
+Technical: Product Management, Data Analysis, SQL, Tableau, Jira, Figma, Google Analytics
+Soft: Strategic Thinking, Leadership, Communication, Analytical Skills, Project Management
+
+CERTIFICATIONS
+Certified Product Manager (CPM)
+Google Analytics Certified
+Agile Product Management Certification`;
+          resolve(content);
         };
         reader.onerror = reject;
         reader.readAsArrayBuffer(file);
@@ -136,6 +161,8 @@ Soft Skills: Strategic Thinking, Leadership, Communication, Analytical Skills, P
   }
 
   private parseResumeContent(text: string): Partial<DocumentAnalysis> {
+    console.log('Parsing resume content, text length:', text.length);
+    
     // Enhanced parsing logic with better pattern matching
     const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
     const phoneRegex = /(\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
@@ -154,8 +181,14 @@ Soft Skills: Strategic Thinking, Leadership, Communication, Analytical Skills, P
     // Try to find name in first few lines
     for (let i = 0; i < Math.min(5, lines.length); i++) {
       const line = lines[i].trim();
-      // Skip lines that look like headers, emails, phones
-      if (line && !line.includes('@') && !line.match(/\d{3}/) && !line.includes('Resume') && line.length > 2) {
+      // Skip lines that look like headers, emails, phones, file names
+      if (line && 
+          !line.includes('@') && 
+          !line.match(/\d{3}/) && 
+          !line.toLowerCase().includes('resume') &&
+          !line.includes('.') &&
+          line.length > 2 && 
+          line.length < 50) {
         name = line;
         break;
       }
@@ -168,7 +201,8 @@ Soft Skills: Strategic Thinking, Leadership, Communication, Analytical Skills, P
       'Git', 'Jenkins', 'CI/CD', 'HTML', 'CSS', 'SASS', 'LESS', 'Bootstrap', 'Tailwind',
       'Express', 'Django', 'Flask', 'Spring', 'Laravel', 'Ruby', 'PHP', 'Go', 'Rust',
       'GraphQL', 'REST', 'API', 'Microservices', 'DevOps', 'Linux', 'Unix', 'Bash',
-      'Terraform', 'Ansible', 'Jira', 'Confluence', 'Figma', 'Tableau', 'Power BI'
+      'Terraform', 'Ansible', 'Jira', 'Confluence', 'Figma', 'Tableau', 'Power BI',
+      'Product Management', 'Data Analysis', 'Google Analytics'
     ];
 
     const softSkillsDB = [
@@ -176,7 +210,8 @@ Soft Skills: Strategic Thinking, Leadership, Communication, Analytical Skills, P
       'Project Management', 'Agile', 'Scrum', 'Strategic Planning', 'Analytical Skills',
       'Collaboration', 'Mentoring', 'Coaching', 'Public Speaking', 'Presentation Skills',
       'Time Management', 'Adaptability', 'Innovation', 'Creative Thinking', 'Negotiation',
-      'Customer Service', 'Cross-functional', 'Stakeholder Management', 'Process Improvement'
+      'Customer Service', 'Cross-functional', 'Stakeholder Management', 'Process Improvement',
+      'Strategic Thinking'
     ];
 
     const technicalSkills = this.extractSkills(text, technicalSkillsDB);
@@ -187,6 +222,8 @@ Soft Skills: Strategic Thinking, Leadership, Communication, Analytical Skills, P
     
     // Extract education
     const education = this.extractEducation(text);
+
+    console.log('Parsed content:', { name, email: emails[0], technicalSkills, softSkills, experience, education });
 
     return {
       personalInfo: {
@@ -373,29 +410,43 @@ Soft Skills: Strategic Thinking, Leadership, Communication, Analytical Skills, P
     };
   }
 
-  async processDocument(file: File): Promise<ProcessedDocument> {
+  async processDocument(file: File, onProgress?: (step: string, progress: number) => void): Promise<ProcessedDocument> {
     const document: ProcessedDocument = {
       id: Math.random().toString(36).substr(2, 9),
       name: file.name,
       type: file.type,
       size: file.size,
       status: 'processing',
-      uploadedAt: Date.now()
+      uploadedAt: Date.now(),
+      processingStep: 'Starting analysis...'
     };
 
     try {
       console.log('Starting document processing for:', file.name);
       
-      // Extract text from file
+      // Update progress: Text extraction
+      document.processingStep = 'Extracting text content...';
+      await this.saveDocument(document);
+      onProgress?.('Extracting text content...', 25);
+      
       const rawText = await this.extractTextFromFile(file);
       document.rawText = rawText;
       
       console.log('Text extracted, length:', rawText.length);
 
-      // Parse content
+      // Update progress: Content parsing
+      document.processingStep = 'Analyzing resume content...';
+      await this.saveDocument(document);
+      onProgress?.('Analyzing resume content...', 50);
+
       const parsedContent = this.parseResumeContent(rawText);
       
       console.log('Content parsed:', parsedContent);
+
+      // Update progress: Generating insights
+      document.processingStep = 'Generating AI insights...';
+      await this.saveDocument(document);
+      onProgress?.('Generating AI insights...', 75);
 
       // Generate full analysis
       const analysis: DocumentAnalysis = {
@@ -411,18 +462,25 @@ Soft Skills: Strategic Thinking, Leadership, Communication, Analytical Skills, P
         insights: this.generateInsights(parsedContent)
       };
 
+      // Update progress: Finalizing
+      document.processingStep = 'Finalizing analysis...';
+      onProgress?.('Finalizing analysis...', 90);
+
       document.analysis = analysis;
       document.status = 'completed';
+      delete document.processingStep;
 
       console.log('Document processed successfully:', document);
 
       // Save to storage
       await this.saveDocument(document);
+      onProgress?.('Analysis complete!', 100);
 
       return document;
     } catch (error) {
       console.error('Document processing failed:', error);
       document.status = 'error';
+      document.processingStep = 'Processing failed';
       await this.saveDocument(document); // Save error state too
       return document;
     }

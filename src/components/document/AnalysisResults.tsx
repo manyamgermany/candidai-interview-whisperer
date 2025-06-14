@@ -10,9 +10,10 @@ import AIInsightsCard from "./AIInsightsCard";
 interface AnalysisResultsProps {
   analysis?: DocumentAnalysis;
   onUploadClick: () => void;
+  onManualCreate?: () => void;
 }
 
-const AnalysisResults = ({ analysis, onUploadClick }: AnalysisResultsProps) => {
+const AnalysisResults = ({ analysis, onUploadClick, onManualCreate }: AnalysisResultsProps) => {
   if (!analysis) {
     return (
       <Card className="border-pink-100">
@@ -31,7 +32,7 @@ const AnalysisResults = ({ analysis, onUploadClick }: AnalysisResultsProps) => {
               Upload Resume
             </Button>
             <Button
-              onClick={() => window.location.reload()} // This will be handled by parent component
+              onClick={onManualCreate}
               variant="outline"
               className="border-indigo-200 text-indigo-600 hover:bg-indigo-50"
             >
