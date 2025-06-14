@@ -1,3 +1,21 @@
+export interface AudioSettings {
+  inputDeviceId: string;
+  outputDeviceId: string;
+  volume: number;
+  noiseCancellation: boolean;
+}
+
+export interface ResponseSettings {
+  tone: 'professional' | 'casual' | 'friendly';
+  length: 'short' | 'medium' | 'long';
+  formality: 'formal' | 'informal';
+}
+
+export interface PrivacySettings {
+  recordAudio: boolean;
+  storeTranscripts: boolean;
+  shareData: boolean;
+}
 
 export interface AIConfig {
   provider: 'openai' | 'anthropic' | 'fallback';
@@ -5,40 +23,73 @@ export interface AIConfig {
   temperature: number;
   maxTokens: number;
   industryFocus: string;
-  responseStyle: 'concise' | 'detailed' | 'balanced';
+  responseStyle: string;
   enablePersonalization: boolean;
   enableIndustryModels: boolean;
 }
 
-export interface SessionData {
-  id: string;
-  date: number;
-  duration: number;
-  transcript: string;
-  analytics: {
-    wordsPerMinute: number;
-    fillerWords: number;
-    confidenceScore: number;
-    totalWords: number;
-  };
-  performance: {
-    score: number;
-    strengths: string[];
-    improvements: string[];
-  };
-  type: 'practice' | 'real' | 'simulation';
+export interface Settings {
+  audioSettings: AudioSettings;
+  responseSettings: ResponseSettings;
+  privacySettings: PrivacySettings;
+  aiConfig: AIConfig;
+  screenshotHistory?: ScreenshotAnalysis[];
 }
 
-export interface StorageSettings {
-  aiConfig: AIConfig;
-  audioSettings: {
-    microphoneEnabled: boolean;
-    noiseReduction: boolean;
-    autoGainControl: boolean;
+export interface ScreenshotAnalysis {
+  insights: string;
+  confidence: number;
+  questions: string[];
+  keyPoints: string[];
+  actionItems: string[];
+  timestamp: number;
+}
+
+export type IndustryType = 'technology' | 'finance' | 'consulting' | 'healthcare' | 'marketing' | 'sales' | 'general';
+export type InterviewType = 'technical' | 'behavioral' | 'situational' | 'executive' | 'general';
+
+export interface UserProfile {
+  personalInfo: {
+    name: string;
+    currentRole: string;
+    industry: string;
+    experience: string;
   };
-  privacySettings: {
-    storeTranscripts: boolean;
-    shareAnalytics: boolean;
-    autoDelete: boolean;
-  };
+  focusKeywords: string[];
+  projects: UserProject[];
+  jobDescription?: JobDescription;
+  targetIndustry: IndustryType;
+  interviewType: InterviewType;
+}
+
+export interface UserProject {
+  id: string;
+  name: string;
+  description: string;
+  technologies: string[];
+  role: string;
+  achievements: string[];
+  duration: string;
+  url: string;
+}
+
+export interface JobDescription {
+  title: string;
+  company: string;
+  industry: string;
+  requirements: string[];
+  skills: string[];
+  experience: string;
+}
+
+export interface PerformanceReport {
+  sessionId: string;
+  timestamp: number;
+  interviewType: InterviewType;
+  industry: IndustryType;
+  duration: number;
+  metrics: any;
+  analytics: any;
+  recommendations: string[];
+  nextSteps: string[];
 }
