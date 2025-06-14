@@ -121,7 +121,7 @@ export class AISuggestionService {
       if (relevantDocs.length > 0) {
         enhancedContext += `\nRelevant background from user documents:\n`;
         relevantDocs.forEach(doc => {
-          enhancedContext += `- ${doc.analysisResults?.summary || doc.fileName || 'Document summary not available'}\n`;
+          enhancedContext += `- ${doc.analysis?.summary || doc.name || 'Document summary not available'}\n`;
         });
       }
     }
@@ -133,7 +133,7 @@ export class AISuggestionService {
     const keywords = this.extractKeywords(analysis.transcript);
     
     return this.userDocuments.filter(doc => {
-      const docText = (doc.analysisResults?.summary || doc.fileName || '').toLowerCase();
+      const docText = (doc.analysis?.summary || doc.name || '').toLowerCase();
       return keywords.some(keyword => docText.includes(keyword.toLowerCase()));
     }).slice(0, 2); // Limit to most relevant documents
   }
