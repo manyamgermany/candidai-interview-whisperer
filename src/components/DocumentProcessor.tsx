@@ -1,4 +1,3 @@
-
 import { RefreshCw } from "lucide-react";
 import { documentProcessingService, ProcessedDocument } from "@/services/documentProcessingService";
 import AnalysisResults from "./document/AnalysisResults";
@@ -9,9 +8,11 @@ import { useDocumentProcessor } from "@/hooks/useDocumentProcessor";
 
 interface DocumentProcessorProps {
   onNavigate: (tab: string) => void;
+  onDocumentProcessed?: () => void;
+  compact?: boolean;
 }
 
-const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
+const DocumentProcessor = ({ onNavigate, onDocumentProcessed, compact = false }: DocumentProcessorProps) => {
   const {
     uploadedFiles,
     setUploadedFiles,
@@ -33,6 +34,13 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
     handleManualProfileSave,
     handleDragEvents
   } = useDocumentProcessor();
+
+  // Notify parent when document processing is complete
+  React.useEffect(() => {
+    if (processingComplete && onDocumentProcessed) {
+      onDocumentProcessed();
+    }
+  }, [processingComplete, onDocumentProcessed]);
 
   const handleSelectFile = (fileId: string, checked: boolean) => {
     const newSelected = new Set(selectedFiles);
@@ -198,19 +206,21 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
 
   if (viewMode === 'manual-form') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50">
-        <DocumentProcessorHeader
-          onNavigate={onNavigate}
-          uploadedFiles={uploadedFiles}
-          isProcessing={isProcessing}
-          processingStep={processingStep}
-          processingProgress={processingProgress}
-          onRefresh={loadExistingDocuments}
-          viewMode={viewMode}
-          onBackToDocuments={() => setViewMode('main')}
-        />
+      <div className={compact ? "" : "min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50"}>
+        {!compact && (
+          <DocumentProcessorHeader
+            onNavigate={onNavigate}
+            uploadedFiles={uploadedFiles}
+            isProcessing={isProcessing}
+            processingStep={processingStep}
+            processingProgress={processingProgress}
+            onRefresh={loadExistingDocuments}
+            viewMode={viewMode}
+            onBackToDocuments={() => setViewMode('main')}
+          />
+        )}
 
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className={compact ? "" : "max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
           <ManualProfileForm
             onSave={handleManualProfileSave}
             onCancel={() => setViewMode('main')}
@@ -221,19 +231,21 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50">
-      <DocumentProcessorHeader
-        onNavigate={onNavigate}
-        uploadedFiles={uploadedFiles}
-        isProcessing={isProcessing}
-        processingStep={processingStep}
-        processingProgress={processingProgress}
-        onRefresh={loadExistingDocuments}
-        viewMode={viewMode}
-      />
+    <div className={compact ? "" : "min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50"}>
+      {!compact && (
+        <DocumentProcessorHeader
+          onNavigate={onNavigate}
+          uploadedFiles={uploadedFiles}
+          isProcessing={isProcessing}
+          processingStep={processingStep}
+          processingProgress={processingProgress}
+          onRefresh={loadExistingDocuments}
+          viewMode={viewMode}
+        />
+      )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
+      <div className={compact ? "" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
+        <div className={compact ? "space-y-6" : "grid lg:grid-cols-3 gap-8"}>
           <DocumentProcessorUploadSection
             dragActive={dragActive}
             onDragEnter={handleDragEvents.onDragEnter}
@@ -256,7 +268,7 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
             onExportDocument={exportAnalysis}
           />
 
-          <div className="lg:col-span-2">
+          <div className={compact ? "" : "lg:col-span-2"}>
             <AnalysisResults
               analysis={latestAnalysis}
               onUploadClick={handleFileInputClick}
