@@ -33,17 +33,27 @@ const DocumentUploadZone = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = () => {
-    if (isProcessing) return;
-    console.log('Upload zone file select clicked');
+    if (isProcessing) {
+      console.log('Upload blocked - processing in progress');
+      return;
+    }
+    console.log('Opening file selector...');
     fileInputRef.current?.click();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('Upload zone file change:', e.target.files?.length);
-    if (e.target.files && !isProcessing) {
+    console.log('File input changed:', {
+      filesCount: e.target.files?.length || 0,
+      isProcessing
+    });
+    
+    if (e.target.files && e.target.files.length > 0 && !isProcessing) {
+      console.log('Files selected via input:', Array.from(e.target.files).map(f => f.name));
       onFilesSelected(e.target.files);
       // Reset the input value so the same file can be selected again
       e.target.value = '';
+    } else if (isProcessing) {
+      console.log('File selection blocked - processing in progress');
     }
   };
 
@@ -77,6 +87,15 @@ const DocumentUploadZone = ({
     }
   };
 
+  const handleDropZoneClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Drop zone clicked, processing status:', isProcessing);
+    if (!isProcessing) {
+      handleFileSelect();
+    }
+  };
+
   return (
     <Card className={`border-2 ${
       processingComplete ? 'border-green-200 bg-green-50' : 
@@ -107,7 +126,7 @@ const DocumentUploadZone = ({
           onDragLeave={isProcessing ? undefined : onDragLeave}
           onDragOver={isProcessing ? undefined : onDragOver}
           onDrop={isProcessing ? undefined : onDrop}
-          onClick={!isProcessing ? handleFileSelect : undefined}
+          onClick={handleDropZoneClick}
         >
           {isProcessing ? (
             <div className="space-y-4">
@@ -139,7 +158,10 @@ const DocumentUploadZone = ({
                   Your resume has been successfully processed
                 </p>
                 <Button
-                  onClick={handleFileSelect}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFileSelect();
+                  }}
                   variant="outline"
                   className="border-green-300 text-green-700 hover:bg-green-100"
                 >
@@ -158,7 +180,10 @@ const DocumentUploadZone = ({
                 Supports PDF, TXT, DOCX, MD files up to 10MB
               </p>
               <Button
-                onClick={handleFileSelect}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleFileSelect();
+                }}
                 disabled={isProcessing}
                 className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white"
               >

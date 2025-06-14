@@ -30,9 +30,10 @@ export const useDocumentProcessor = () => {
   const loadExistingDocuments = async () => {
     try {
       setIsLoading(true);
+      console.log('Loading existing documents...');
       const documents = await documentProcessingService.getDocuments();
       setUploadedFiles(documents);
-      console.log('Loaded documents:', documents.length);
+      console.log('Loaded documents:', documents.length, documents);
     } catch (error) {
       console.error('Failed to load documents:', error);
       toast({
@@ -46,6 +47,8 @@ export const useDocumentProcessor = () => {
   };
 
   const validateFile = (file: File): string | null => {
+    console.log('Validating file:', file.name, 'Type:', file.type, 'Size:', file.size);
+    
     const supportedTypes = [
       'application/pdf',
       'text/plain',
@@ -59,44 +62,64 @@ export const useDocumentProcessor = () => {
                        supportedExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
 
     if (!isValidType) {
+      console.log('Invalid file type:', file.type, 'Name:', file.name);
       return "Please upload PDF, TXT, DOCX, or MD files only.";
     }
 
     if (file.size > 10 * 1024 * 1024) {
+      console.log('File too large:', file.size);
       return "Please upload files smaller than 10MB.";
     }
 
+    if (file.size === 0) {
+      console.log('File is empty:', file.name);
+      return "Please upload a non-empty file.";
+    }
+
+    console.log('File validation passed');
     return null;
   };
 
   const handleFiles = async (files: FileList) => {
-    console.log('Starting file processing for', files.length, 'files');
+    console.log('=== STARTING FILE PROCESSING ===');
+    console.log('Files received:', files.length);
     
     if (files.length === 0) {
       console.log('No files provided');
       return;
     }
 
+    // Log each file
+    Array.from(files).forEach((file, index) => {
+      console.log(`File ${index + 1}:`, {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        lastModified: file.lastModified
+      });
+    });
+
     setIsProcessing(true);
     setProcessingProgress(0);
     setProcessingStep('Preparing to process documents...');
     setProcessingComplete(false);
     
-    for (const file of Array.from(files)) {
-      console.log('Processing file:', file.name, 'Type:', file.type, 'Size:', file.size);
-      
-      const validationError = validateFile(file);
-      if (validationError) {
-        toast({
-          title: "Invalid File",
-          description: validationError,
-          variant: "destructive",
-        });
-        continue;
-      }
+    try {
+      for (const file of Array.from(files)) {
+        console.log('=== PROCESSING FILE ===', file.name);
+        
+        const validationError = validateFile(file);
+        if (validationError) {
+          console.log('Validation failed:', validationError);
+          toast({
+            title: "Invalid File",
+            description: validationError,
+            variant: "destructive",
+          });
+          continue;
+        }
 
-      try {
-        console.log('Starting document processing for:', file.name);
+        console.log('File validation passed, starting processing...');
         
         toast({
           title: "Processing Started",
@@ -112,43 +135,55 @@ export const useDocumentProcessor = () => {
           }
         );
         
-        console.log('File processed:', processedDoc.status, processedDoc.analysis ? 'with analysis' : 'without analysis');
+        console.log('File processing completed:', {
+          id: processedDoc.id,
+          name: processedDoc.name,
+          status: processedDoc.status,
+          hasAnalysis: !!processedDoc.analysis,
+          rawTextLength: processedDoc.rawText?.length || 0
+        });
         
         setUploadedFiles(prev => {
           const filtered = prev.filter(doc => doc.id !== processedDoc.id);
-          return [processedDoc, ...filtered];
+          const newList = [processedDoc, ...filtered];
+          console.log('Updated file list, total files:', newList.length);
+          return newList;
         });
 
         if (processedDoc.status === 'completed' && processedDoc.analysis) {
           setProcessingComplete(true);
+          console.log('Processing completed successfully with analysis');
           toast({
             title: "Document Processed Successfully",
             description: `${file.name} has been analyzed and is ready for use.`,
           });
         } else if (processedDoc.status === 'error') {
+          console.log('Processing failed with error status');
           toast({
             title: "Processing Failed",
-            description: `Failed to process ${file.name}. Please check the file format and try again.`,
+            description: `Failed to process ${file.name}. ${processedDoc.processingStep || 'Please check the file format and try again.'}`,
             variant: "destructive",
           });
         }
-      } catch (error) {
-        console.error('File processing error:', error);
-        toast({
-          title: "Processing Error",
-          description: `Error processing ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          variant: "destructive",
-        });
       }
+    } catch (error) {
+      console.error('File processing error:', error);
+      toast({
+        title: "Processing Error",
+        description: `Error processing files: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+      });
+    } finally {
+      console.log('=== FILE PROCESSING COMPLETE ===');
+      setIsProcessing(false);
+      setProcessingProgress(0);
+      setProcessingStep('');
     }
-    
-    setIsProcessing(false);
-    setProcessingProgress(0);
-    setProcessingStep('');
   };
 
   const handleManualProfileSave = async (analysis: DocumentAnalysis) => {
     try {
+      console.log('Saving manual profile...');
       const manualDoc: ProcessedDocument = {
         id: 'manual-profile-' + Date.now(),
         name: 'Manual Profile',
@@ -164,6 +199,7 @@ export const useDocumentProcessor = () => {
       setUploadedFiles(prev => [manualDoc, ...prev]);
       setViewMode('main');
       
+      console.log('Manual profile saved successfully');
       toast({
         title: "Manual Profile Created",
         description: "Your profile has been created and is ready for interview assistance.",
@@ -182,11 +218,13 @@ export const useDocumentProcessor = () => {
     onDragEnter: (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      console.log('Drag enter detected');
       setDragActive(true);
     },
     onDragLeave: (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      console.log('Drag leave detected');
       setDragActive(false);
     },
     onDragOver: (e: React.DragEvent) => {
@@ -199,9 +237,14 @@ export const useDocumentProcessor = () => {
       e.stopPropagation();
       setDragActive(false);
       
-      console.log('Files dropped:', e.dataTransfer.files.length);
+      console.log('Files dropped - checking dataTransfer...');
+      console.log('DataTransfer files:', e.dataTransfer.files.length);
+      
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        console.log('Processing dropped files...');
         handleFiles(e.dataTransfer.files);
+      } else {
+        console.log('No files found in drop event');
       }
     }
   };
