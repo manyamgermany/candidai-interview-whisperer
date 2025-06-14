@@ -56,12 +56,38 @@ export class AIService {
     });
   }
 
+  private validateAndCleanApiKey(apiKey: string): string {
+    if (!apiKey) return '';
+    
+    // Remove any whitespace, newlines, or extra characters
+    const cleaned = apiKey.trim().replace(/\s+/g, '');
+    
+    // OpenAI API keys should start with 'sk-' and be around 51 characters
+    if (cleaned.startsWith('sk-')) {
+      // Validate length - OpenAI keys are typically 51-56 characters
+      if (cleaned.length > 200) {
+        console.warn('OpenAI API key appears to be too long, truncating...');
+        // This might be a concatenated key or have extra data
+        const possibleKey = cleaned.substring(0, 56);
+        return possibleKey;
+      }
+      if (cleaned.length < 20) {
+        console.warn('OpenAI API key appears to be too short');
+        return '';
+      }
+    }
+    
+    return cleaned;
+  }
+
   async configure(provider: string, apiKey: string, model?: string) {
     const existingProvider = this.providers.get(provider);
     if (existingProvider) {
-      existingProvider.apiKey = apiKey;
+      // Clean and validate the API key
+      const cleanedKey = this.validateAndCleanApiKey(apiKey);
+      existingProvider.apiKey = cleanedKey;
       if (model) existingProvider.model = model;
-      console.log(`Configured ${provider} provider with model ${existingProvider.model}`);
+      console.log(`Configured ${provider} provider with model ${existingProvider.model}, key length: ${cleanedKey.length}`);
       return true;
     }
     return false;
@@ -151,6 +177,18 @@ Be supportive, specific, and immediately actionable. Avoid generic advice.`;
   }
 
   private async callOpenAI(provider: AIProvider, prompt: string, framework: string): Promise<AIResponse> {
+    // Validate API key before making request
+    if (!provider.apiKey || provider.apiKey.length < 20) {
+      throw new Error('Invalid or missing OpenAI API key');
+    }
+
+    // Double-check API key format
+    if (!provider.apiKey.startsWith('sk-')) {
+      throw new Error('OpenAI API key must start with "sk-"');
+    }
+
+    console.log(`Making OpenAI request with key length: ${provider.apiKey.length}`);
+
     const response = await fetch(provider.endpoint, {
       method: 'POST',
       headers: {
@@ -171,7 +209,13 @@ Be supportive, specific, and immediately actionable. Avoid generic advice.`;
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`OpenAI API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+      const errorMessage = errorData.error?.message || 'Unknown error';
+      
+      if (errorMessage.includes('API key') || errorMessage.includes('authentication')) {
+        throw new Error(`OpenAI API authentication failed: ${errorMessage}. Please check your API key.`);
+      }
+      
+      throw new Error(`OpenAI API error: ${response.status} - ${errorMessage}`);
     }
 
     const data = await response.json();
