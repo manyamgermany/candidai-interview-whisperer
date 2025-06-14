@@ -1,8 +1,7 @@
-
 import { SpeechRecognitionManager } from './speechRecognition';
 import { SpeechAnalyticsCalculator, SpeechAnalytics, TranscriptSegment } from './speechAnalytics';
 
-export { SpeechAnalytics, TranscriptSegment };
+export type { SpeechAnalytics, TranscriptSegment };
 
 export class SpeechService {
   private recognitionManager: SpeechRecognitionManager;

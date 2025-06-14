@@ -1,10 +1,9 @@
-
 import { OpenAIProvider } from './ai/providers/openaiProvider';
 import { PromptBuilder } from './ai/promptBuilder';
 import { FallbackProvider } from './ai/fallbackProvider';
 import { AIResponse } from './ai/types';
 
-export { AIResponse };
+export type { AIResponse };
 
 export class AIService {
   private openaiProvider = new OpenAIProvider();
