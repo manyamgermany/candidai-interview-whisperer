@@ -176,18 +176,70 @@ export class AIService {
       general: 'This is a general interview question'
     };
 
+    // Get user profile data for context
+    const userProfileContext = this.getUserProfileContext();
+
     return `You are an expert interview coach providing real-time assistance to a candidate.
 
 Context: "${context}"
 Question Type: ${questionTypes[questionType as keyof typeof questionTypes] || questionTypes.general}
 Framework: ${frameworks[framework as keyof typeof frameworks] || frameworks.star}
 
-Provide a concise, actionable suggestion (1-2 sentences) to help the candidate respond effectively. Focus on:
-1. Key points to mention
-2. Structure for the response
-3. Specific advice for this situation
+${userProfileContext}
 
-Be supportive, specific, and immediately actionable. Avoid generic advice.`;
+Provide a concise, actionable suggestion (1-2 sentences) to help the candidate respond effectively. Focus on:
+1. Key points to mention based on their background
+2. Structure for the response using the specified framework
+3. Specific advice leveraging their skills and experience
+4. How to incorporate their focus keywords naturally
+
+Be supportive, specific, and immediately actionable. Use their actual experience and skills in your suggestions.`;
+  }
+
+  private getUserProfileContext(): string {
+    try {
+      // Get user profile data from localStorage
+      const focusKeywords = JSON.parse(localStorage.getItem('userFocusKeywords') || '[]');
+      const careerSummary = localStorage.getItem('userCareerSummary') || '';
+      const currentRole = localStorage.getItem('userCurrentRole') || '';
+      const keyAchievements = localStorage.getItem('userKeyAchievements') || '';
+      
+      // Get latest document analysis
+      const documents = JSON.parse(localStorage.getItem('processedDocuments') || '[]');
+      const latestDoc = documents.find((doc: any) => doc.status === 'completed' && doc.analysis);
+      
+      let contextStr = '';
+      
+      if (latestDoc?.analysis) {
+        const analysis = latestDoc.analysis;
+        contextStr += `\nCandidate Profile:
+- Name: ${analysis.personalInfo?.name || 'Not specified'}
+- Current Role: ${currentRole || 'Not specified'}
+- Technical Skills: ${analysis.skills?.technical?.join(', ') || 'Not specified'}
+- Soft Skills: ${analysis.skills?.soft?.join(', ') || 'Not specified'}`;
+
+        if (analysis.experience?.length > 0) {
+          contextStr += `\n- Recent Experience: ${analysis.experience[0].title} at ${analysis.experience[0].company}`;
+        }
+      }
+
+      if (careerSummary) {
+        contextStr += `\n- Career Summary: ${careerSummary}`;
+      }
+
+      if (keyAchievements) {
+        contextStr += `\n- Key Achievements: ${keyAchievements}`;
+      }
+
+      if (focusKeywords.length > 0) {
+        contextStr += `\n- Focus Keywords to Emphasize: ${focusKeywords.join(', ')}`;
+      }
+
+      return contextStr;
+    } catch (error) {
+      console.error('Error getting user profile context:', error);
+      return '';
+    }
   }
 
   private async callOpenAI(provider: AIProvider, prompt: string, framework: string): Promise<AIResponse> {
@@ -345,7 +397,7 @@ Be supportive, specific, and immediately actionable. Avoid generic advice.`;
 
   private fallbackResponse(context: string, framework: string): AIResponse {
     const suggestions = [
-      'Take a moment to structure your response clearly using the STAR method.',
+      'Take a moment to structure your response clearly using the specified framework.',
       'Consider providing a specific example from your experience.',
       'Focus on quantifiable results and the impact of your actions.',
       'Remember to highlight your role and contributions clearly.',
@@ -356,7 +408,21 @@ Be supportive, specific, and immediately actionable. Avoid generic advice.`;
     const contextKeywords = context.toLowerCase();
     let suggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
 
-    // Try to make it more contextual
+    // Try to make it more contextual based on user profile
+    try {
+      const focusKeywords = JSON.parse(localStorage.getItem('userFocusKeywords') || '[]');
+      const currentRole = localStorage.getItem('userCurrentRole') || '';
+      
+      if (focusKeywords.length > 0) {
+        suggestion = `Consider mentioning your experience with ${focusKeywords[0]} and structure your response using the ${framework.toUpperCase()} method.`;
+      } else if (currentRole) {
+        suggestion = `Draw from your experience as ${currentRole} and provide specific examples.`;
+      }
+    } catch (error) {
+      // Fall back to generic suggestions
+    }
+
+    // Context-based suggestions
     if (contextKeywords.includes('team') || contextKeywords.includes('collaboration')) {
       suggestion = 'Highlight your collaboration skills and specific contributions to the team.';
     } else if (contextKeywords.includes('challenge') || contextKeywords.includes('difficult')) {

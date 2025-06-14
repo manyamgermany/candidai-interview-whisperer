@@ -6,16 +6,21 @@ import {
   ArrowLeft, 
   FileText, 
   RefreshCw,
-  FileCheck
+  FileCheck,
+  UserPlus,
+  Upload
 } from "lucide-react";
-import { documentProcessingService, ProcessedDocument } from "@/services/documentProcessingService";
+import { documentProcessingService, ProcessedDocument, DocumentAnalysis } from "@/services/documentProcessingService";
 import DocumentUploadZone from "./document/DocumentUploadZone";
 import DocumentLibrary from "./document/DocumentLibrary";
 import AnalysisResults from "./document/AnalysisResults";
+import ManualProfileForm from "./document/ManualProfileForm";
 
 interface DocumentProcessorProps {
   onNavigate: (tab: string) => void;
 }
+
+type ViewMode = 'main' | 'manual-form';
 
 const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
   const [uploadedFiles, setUploadedFiles] = useState<ProcessedDocument[]>([]);
@@ -23,6 +28,8 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
   const [dragActive, setDragActive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('main');
+  const [manualProfile, setManualProfile] = useState<DocumentAnalysis | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -257,8 +264,30 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
     URL.revokeObjectURL(url);
   };
 
+  const handleManualProfileSave = (analysis: DocumentAnalysis) => {
+    // Create a mock processed document for the manual profile
+    const manualDoc: ProcessedDocument = {
+      id: 'manual-profile-' + Date.now(),
+      name: 'Manual Profile',
+      type: 'manual',
+      size: 0,
+      status: 'completed',
+      uploadedAt: Date.now(),
+      analysis
+    };
+
+    setManualProfile(analysis);
+    setUploadedFiles(prev => [manualDoc, ...prev]);
+    setViewMode('main');
+    
+    toast({
+      title: "Manual Profile Created",
+      description: "Your profile has been created and is ready for interview assistance.",
+    });
+  };
+
   const completedFiles = uploadedFiles.filter(f => f.status === 'completed');
-  const latestAnalysis = completedFiles[completedFiles.length - 1]?.analysis;
+  const latestAnalysis = manualProfile || completedFiles[completedFiles.length - 1]?.analysis;
 
   if (isLoading) {
     return (
@@ -266,6 +295,46 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
         <div className="flex items-center space-x-2">
           <RefreshCw className="h-6 w-6 animate-spin text-pink-600" />
           <span className="text-lg text-gray-600">Loading documents...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (viewMode === 'manual-form') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50">
+        <header className="bg-white/80 backdrop-blur-sm border-b border-pink-100 sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center space-x-4">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setViewMode('main')}
+                  className="text-gray-600 hover:text-pink-600"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Documents
+                </Button>
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-gradient-to-br from-pink-400 to-rose-500 rounded-full flex items-center justify-center">
+                    <UserPlus className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-lg font-bold text-gray-900">Manual Profile Creation</h1>
+                    <p className="text-xs text-gray-500">Create your profile manually</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <ManualProfileForm
+            onSave={handleManualProfileSave}
+            onCancel={() => setViewMode('main')}
+          />
         </div>
       </div>
     );
@@ -295,8 +364,8 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
                   <FileText className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold text-gray-900">Document Processor</h1>
-                  <p className="text-xs text-gray-500">Resume Analysis & Insights</p>
+                  <h1 className="text-lg font-bold text-gray-900">Profile Builder</h1>
+                  <p className="text-xs text-gray-500">Resume Analysis & Manual Profile Creation</p>
                 </div>
               </div>
             </div>
@@ -304,7 +373,7 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
               {uploadedFiles.length > 0 && (
                 <div className="flex items-center space-x-2 text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
                   <FileCheck className="h-4 w-4" />
-                  <span>{uploadedFiles.length} documents</span>
+                  <span>{uploadedFiles.length} profile{uploadedFiles.length !== 1 ? 's' : ''}</span>
                 </div>
               )}
               {isProcessing && (
@@ -329,17 +398,41 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Upload Section */}
+          {/* Upload & Creation Section */}
           <div className="lg:col-span-1 space-y-6">
-            <DocumentUploadZone
-              dragActive={dragActive}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-              onFilesSelected={handleFiles}
-              isProcessing={isProcessing}
-            />
+            {/* Profile Creation Options */}
+            <div className="grid grid-cols-1 gap-4">
+              <DocumentUploadZone
+                dragActive={dragActive}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                onFilesSelected={handleFiles}
+                isProcessing={isProcessing}
+              />
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-gradient-to-br from-pink-50 via-white to-rose-50 text-gray-500">or</span>
+                </div>
+              </div>
+
+              <Button
+                onClick={() => setViewMode('manual-form')}
+                disabled={isProcessing}
+                className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white h-16"
+              >
+                <UserPlus className="h-5 w-5 mr-2" />
+                <div className="text-left">
+                  <div className="font-medium">Create Manual Profile</div>
+                  <div className="text-xs opacity-90">Add your details manually</div>
+                </div>
+              </Button>
+            </div>
 
             <DocumentLibrary
               documents={uploadedFiles}
