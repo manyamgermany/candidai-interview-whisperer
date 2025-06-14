@@ -173,15 +173,17 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
             </div>
           </div>
 
-          {/* AI Assistant - 3/4 of space - Remove bottom margin */}
-          <div className="flex-1 min-h-0" style={{ minHeight: '60vh' }}>
-            <AIAssistant 
-              sessionActive={sessionActive}
-              aiSuggestion={aiSuggestion}
-              analytics={analytics}
-              chatMessages={chatMessages}
-              isLoading={isChatLoading}
-            />
+          {/* AI Assistant - 3/4 of space - Bottom aligned to chat input */}
+          <div className="flex-1 min-h-0 flex flex-col justify-end" style={{ minHeight: '60vh' }}>
+            <div className="flex-1 min-h-0">
+              <AIAssistant 
+                sessionActive={sessionActive}
+                aiSuggestion={aiSuggestion}
+                analytics={analytics}
+                chatMessages={chatMessages}
+                isLoading={isChatLoading}
+              />
+            </div>
           </div>
 
           {/* Chat Input - Fixed at bottom with top border */}
