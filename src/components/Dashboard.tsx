@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { SpeechAnalytics } from "@/services/speechService";
 import { AIResponse } from "@/services/aiService";
@@ -15,6 +14,7 @@ import { InterviewSimulator } from "./dashboard/InterviewSimulator";
 import { RealTimeCoaching } from "./dashboard/RealTimeCoaching";
 import { SessionHistory } from "./dashboard/SessionHistory";
 import { AIConfigPanel } from "./dashboard/AIConfigPanel";
+import { ChatInput } from "./dashboard/ChatInput";
 
 interface DashboardProps {
   onNavigate: (tab: string) => void;
@@ -181,6 +181,11 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
 
           {/* Sidebar - Minimal and Focused */}
           <Sidebar />
+        </div>
+
+        {/* Chat Input at the Bottom */}
+        <div className="mt-8">
+          <ChatInput />
         </div>
       </div>
     </div>
