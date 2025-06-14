@@ -1,4 +1,3 @@
-
 import { chromeStorage } from '@/utils/chromeStorage';
 
 export interface DocumentAnalysis {
@@ -211,10 +210,20 @@ Soft Skills: Strategic Thinking, Leadership, Communication, Analytical Skills, P
     const lowerText = text.toLowerCase();
     
     skillList.forEach(skill => {
-      // Use word boundaries for better matching
-      const regex = new RegExp(`\\b${skill.toLowerCase()}\\b`, 'i');
-      if (regex.test(lowerText)) {
-        foundSkills.push(skill);
+      try {
+        // Escape special regex characters in skill names
+        const escapedSkill = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Use word boundaries for better matching
+        const regex = new RegExp(`\\b${escapedSkill.toLowerCase()}\\b`, 'i');
+        if (regex.test(lowerText)) {
+          foundSkills.push(skill);
+        }
+      } catch (error) {
+        console.error(`Error processing skill "${skill}":`, error);
+        // Fallback to simple string matching if regex fails
+        if (lowerText.includes(skill.toLowerCase())) {
+          foundSkills.push(skill);
+        }
       }
     });
     
