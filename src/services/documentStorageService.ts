@@ -24,9 +24,10 @@ export class DocumentStorageService {
 
   async getDocuments(): Promise<ProcessedDocument[]> {
     try {
-      const documents = await chromeStorage.getItem('processedDocuments') || [];
-      console.log('Retrieved documents from storage:', documents.length);
-      return documents;
+      const documents = await chromeStorage.getItem('processedDocuments') as ProcessedDocument[] | null;
+      const result = documents || [];
+      console.log('Retrieved documents from storage:', result.length);
+      return result;
     } catch (error) {
       console.error('Failed to get documents:', error);
       return [];
