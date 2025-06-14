@@ -1,4 +1,3 @@
-
 export interface SpeechAnalytics {
   wordsPerMinute: number;
   fillerWords: number;

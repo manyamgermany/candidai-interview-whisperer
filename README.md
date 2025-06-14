@@ -1,22 +1,39 @@
-# Welcome to your Lovable project
 
-## Project info
+# CandidAI ✨ - Your AI Meeting Assistant
 
-**URL**: https://lovable.dev/projects/cc8cb9df-803d-4052-9ac8-38f9d2809ff0
+Welcome to CandidAI! This powerful Chrome Extension is designed to be your personal meeting coach, helping you excel in every professional conversation.
 
-## How can I edit this code?
+![CandidAI Dashboard](public/placeholder.svg)
 
-There are several ways of editing your application.
+---
 
-**Use Lovable**
+## 🚀 Get Started in 3 Easy Steps
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/cc8cb9df-803d-4052-9ac8-38f9d2809ff0) and start prompting.
+1.  **Launch the Dashboard**: Click "Launch Dashboard" or "Get Started" to open the main interface.
+2.  **Start a Session**: Press the ▶️ **Play** button to begin an AI-powered session. Grant microphone access when prompted. The AI will start listening and analyzing in real-time.
+3.  **Get Real-Time Feedback**: As you speak, CandidAI provides live coaching tips, tracks your speech analytics (like WPM and filler words), and offers intelligent suggestions to improve your responses.
 
-Changes made via Lovable will be committed automatically to this repo.
+It's that simple! End the session with the ⏸️ **Pause** button to receive a comprehensive performance report.
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🌟 Core Features
+
+CandidAI is packed with features to make you a more confident and effective communicator:
+
+*   **🎙️ Real-time Transcription & Coaching**: Get a live transcript of your meeting and receive instant feedback on your delivery.
+*   **🧠 AI-Powered Suggestions**: Leverage the power of OpenAI, Anthropic, and Google's LLMs for smart suggestions and response frameworks (STAR, PREP, etc.).
+*   **📊 In-Depth Performance Analytics**: Track your words per minute (WPM), filler word usage, speaking time, and get an overall confidence score.
+*   **📄 Document & Resume Analysis**: Upload documents like resumes (PDF, DOCX) to have the AI extract key skills and prepare you for specific discussion points.
+*   **📸 Screenshot Analysis**: Instantly analyze content from your screen to get context-aware insights and suggestions.
+*   **💬 Interactive AI Chat**: Ask questions and get help from the AI assistant at any time during your session.
+*   **📜 Session History & Reports**: Review past sessions and detailed performance reports to track your improvement over time.
+
+---
+
+## 💻 How to Develop Locally
+
+Want to tinker with the code? If you want to work locally using your own IDE, you can clone this repo and push changes.
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
@@ -35,39 +52,22 @@ npm i
 # Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
+Your browser will open with the app running and will auto-reload when you make changes!
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🛠️ Technologies Used
 
-**Use GitHub Codespaces**
+This project is built with a modern tech stack:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- [Vite](https://vitejs.dev/)
+- [React](https://reactjs.org/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [shadcn/ui](https://ui.shadcn.com/)
 
-## What technologies are used for this project?
+---
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/cc8cb9df-803d-4052-9ac8-38f9d2809ff0) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+<p align="center">
+  Happy with CandidAI? Give us a ⭐️ on GitHub!
+</p>

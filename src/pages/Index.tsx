@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Brain, FileText, BarChart3, Settings, Mic, Users, Download, Chrome } from "lucide-react";
-import Dashboard from "@/components/Dashboard";
 import DocumentProcessor from "@/components/DocumentProcessor";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 import SettingsPanel from "@/components/SettingsPanel";
@@ -54,10 +53,6 @@ const Index = () => {
     { label: "Frameworks", value: "5+", description: "Response methodologies" },
     { label: "Platforms", value: "10+", description: "Supported meeting platforms" }
   ];
-
-  if (activeTab === "dashboard") {
-    return <Dashboard onNavigate={handleNavigate} />;
-  }
 
   if (activeTab === "documents") {
     return <DocumentProcessor onNavigate={handleNavigate} />;
