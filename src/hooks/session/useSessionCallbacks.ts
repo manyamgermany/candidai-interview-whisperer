@@ -97,9 +97,9 @@ export const useSessionCallbacks = ({
   }, [setSessionState]);
 
   return {
-    handleTranscript,
-    handleAnalytics,
-    handleError,
-    handleStatusChange
+    onTranscript: handleTranscript,
+    onAnalytics: handleAnalytics,
+    onError: handleError,
+    onStatusChange: handleStatusChange
   };
 };
