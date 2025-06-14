@@ -1,7 +1,7 @@
 
 import React, { memo, useMemo } from 'react';
 import { FixedSizeList as List } from 'react-window';
-import { SessionData } from "@/types/storageTypes";
+import { SessionData } from "@/types/chromeStorageTypes";
 import { SessionCard } from './MemoizedSessionCard';
 
 interface VirtualizedSessionListProps {

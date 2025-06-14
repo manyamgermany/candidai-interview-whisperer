@@ -9,7 +9,7 @@ import { ComponentErrorBoundary } from "@/components/ComponentErrorBoundary";
 import { VirtualizedSessionList } from "./VirtualizedSessionList";
 import { useAppStore } from "@/store/useAppStore";
 import { storageService } from "@/services/storageService";
-import { SessionData } from "@/types/storageTypes";
+import { SessionData } from "@/types/chromeStorageTypes";
 
 export const SessionHistory = () => {
   const { sessions, loadSessions, removeSession, setLoading, loading, setError } = useAppStore();
@@ -29,7 +29,17 @@ export const SessionHistory = () => {
       setLoading('sessions', true);
       setError('sessions', null);
       const sessionData = await storageService.getAllSessions();
-      loadSessions(sessionData);
+      // Convert sessions to match the expected format
+      const formattedSessions = sessionData.map(session => ({
+        ...session,
+        date: session.date || session.timestamp,
+        timestamp: session.timestamp || session.date,
+        type: session.type || 'practice',
+        performance: session.performance || { score: 0 },
+        platform: session.platform || 'web',
+        suggestions: session.suggestions || []
+      }));
+      loadSessions(formattedSessions);
     } catch (error) {
       console.error('Failed to load sessions:', error);
       setError('sessions', 'Failed to load session history');
@@ -63,7 +73,7 @@ export const SessionHistory = () => {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case "date":
-          return b.date - a.date;
+          return (b.date || b.timestamp) - (a.date || a.timestamp);
         case "duration":
           return (b.duration || 0) - (a.duration || 0);
         case "score":

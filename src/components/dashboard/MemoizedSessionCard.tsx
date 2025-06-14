@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Calendar, Clock, BarChart3, Trash2 } from "lucide-react";
-import { SessionData } from "@/types/storageTypes";
+import { SessionData } from "@/types/chromeStorageTypes";
 
 interface SessionCardProps {
   session: SessionData;
@@ -56,7 +56,7 @@ const SessionCard = memo(({ session, onDelete, onView }: SessionCardProps) => {
               </Badge>
               <span className="text-sm text-gray-500 flex items-center">
                 <Calendar className="h-4 w-4 mr-1" />
-                {formatDate(session.date)}
+                {formatDate(session.date || session.timestamp)}
               </span>
               <span className="text-sm text-gray-500 flex items-center">
                 <Clock className="h-4 w-4 mr-1" />
