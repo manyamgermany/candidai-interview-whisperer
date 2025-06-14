@@ -3,9 +3,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import SettingsPanel from "@/components/SettingsPanel";
+import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 
-const SettingsPage = () => {
+const AnalyticsPage = () => {
   const navigate = useNavigate();
 
   const handleNavigate = (tab: string) => {
@@ -29,15 +29,15 @@ const SettingsPage = () => {
             Back to Home
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Application Settings</h1>
-            <p className="text-gray-600">Configure your AI and application preferences</p>
+            <h1 className="text-2xl font-bold text-gray-900">Performance Analytics</h1>
+            <p className="text-gray-600">View your session analytics and progress</p>
           </div>
         </div>
         
-        <SettingsPanel onNavigate={handleNavigate} />
+        <AnalyticsDashboard onNavigate={handleNavigate} />
       </div>
     </div>
   );
 };
 
-export default SettingsPage;
+export default AnalyticsPage;

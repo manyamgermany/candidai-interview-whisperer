@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+
+import { useCallback, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { unifiedAudioService, UnifiedAudioService } from '@/services/unifiedAudioService';
-import { OptimizedSessionState, SessionCallbacks } from './sessionTypes';
-import { aiService } from "@/services/aiService";
-import { chromeStorage } from "@/utils/chromeStorage";
-import { PerformanceReport } from "@/types/interviewTypes";
-import { TranscriptSegment } from '@/services/speech/speechAnalytics';
+import { UnifiedAudioService } from '@/services/unifiedAudioService';
+import { speechService } from '@/services/speech/speechService';
+import { PerformanceReport } from '@/types/interviewTypes';
 import { AISuggestion } from '@/services/aiSuggestionService';
+import { OptimizedSessionState } from './sessionTypes';
+import { TranscriptSegment } from '@/services/speech/speechAnalytics';
 
 interface UseSessionActionsProps {
   sessionState: OptimizedSessionState;
@@ -14,7 +14,12 @@ interface UseSessionActionsProps {
   transcriptRef: React.MutableRefObject<string>;
   segmentsRef: React.MutableRefObject<TranscriptSegment[]>;
   lastQuestionTimeRef: React.MutableRefObject<number>;
-  callbacks: SessionCallbacks;
+  callbacks: {
+    onTranscript: (analysis: any, segments: TranscriptSegment[]) => void;
+    onAnalytics: (analytics: any) => void;
+    onError: (error: string) => void;
+    onStatusChange: (status: string) => void;
+  };
   onPerformanceReportGenerated?: (report: PerformanceReport) => void;
 }
 
@@ -32,12 +37,22 @@ export const useSessionActions = ({
 
   const startSession = useCallback(async () => {
     if (!UnifiedAudioService.isSupported()) {
-      callbacks.onError('Speech recognition not supported in this browser');
-      return false;
+      toast({
+        title: "Not Supported",
+        description: "Speech recognition is not supported in this browser",
+        variant: "destructive",
+      });
+      return;
     }
 
     try {
-      const success = await unifiedAudioService.startCapturing(callbacks);
+      const unifiedService = new UnifiedAudioService();
+      const success = await unifiedService.startCapturing({
+        onTranscript: callbacks.onTranscript,
+        onAnalytics: callbacks.onAnalytics,
+        onError: callbacks.onError,
+        onStatusChange: callbacks.onStatusChange
+      });
 
       if (success) {
         setSessionState(prev => ({
@@ -45,142 +60,111 @@ export const useSessionActions = ({
           isActive: true,
           isRecording: true,
           status: 'capturing',
-          errorMessage: null,
-          transcript: '',
-          segments: [],
-          currentSuggestion: null,
           sessionStartTime: Date.now(),
-          sessionDuration: '00:00',
+          errorMessage: null
         }));
-
-        // Reset refs
-        transcriptRef.current = '';
-        segmentsRef.current = [];
-        lastQuestionTimeRef.current = 0;
 
         toast({
           title: "Session Started",
-          description: "Audio capture is now active",
+          description: "AI-powered meeting assistance is now active",
         });
-
-        return true;
       }
-      
-      return false;
     } catch (error) {
-      callbacks.onError(`Failed to start session: ${error}`);
-      return false;
+      console.error('Failed to start session:', error);
+      callbacks.onError('Failed to start audio capture');
     }
-  }, [callbacks, setSessionState, transcriptRef, segmentsRef, lastQuestionTimeRef, toast]);
+  }, [toast, setSessionState, callbacks]);
 
-  const generatePerformanceReport = useCallback(async () => {
-    if (!transcriptRef.current || segmentsRef.current.length === 0) {
-      console.warn('No transcript data available for performance report');
-      return;
-    }
-
+  const stopSession = useCallback(async () => {
     setIsGeneratingReport(true);
-    toast({ title: "Analyzing performance...", description: "Please wait while we generate your report." });
-
+    
     try {
-      const sessionId = Date.now().toString();
-      const durationInMinutes = (Date.now() - sessionState.sessionStartTime) / 60000;
+      // Stop audio services
+      const unifiedService = new UnifiedAudioService();
+      unifiedService.stopCapturing();
 
-      if (!sessionState.analytics) {
-        throw new Error("Analytics data is not available.");
+      // Generate performance report
+      const report: PerformanceReport = {
+        sessionId: `session_${Date.now()}`,
+        timestamp: Date.now(),
+        duration: sessionState.sessionDuration,
+        analytics: sessionState.analytics || {
+          wordsPerMinute: 0,
+          fillerWords: 0,
+          pauseDuration: 0,
+          confidenceScore: 0,
+          totalWords: 0,
+          speakingTime: 0
+        },
+        transcript: transcriptRef.current,
+        suggestions: sessionState.currentSuggestion ? [sessionState.currentSuggestion] : [],
+        overallScore: sessionState.analytics?.confidenceScore || 0,
+        strengths: [],
+        improvements: []
+      };
+
+      // Add analysis to report
+      if (sessionState.analytics) {
+        const { wordsPerMinute, fillerWords, confidenceScore } = sessionState.analytics;
+        
+        if (wordsPerMinute >= 120 && wordsPerMinute <= 160) {
+          report.strengths.push("Excellent speaking pace");
+        }
+        if (fillerWords < 5) {
+          report.strengths.push("Minimal filler words");
+        }
+        if (confidenceScore >= 80) {
+          report.strengths.push("High confidence delivery");
+        }
+        
+        if (wordsPerMinute < 100 || wordsPerMinute > 180) {
+          report.improvements.push("Adjust speaking pace for better clarity");
+        }
+        if (fillerWords > 10) {
+          report.improvements.push("Reduce use of filler words");
+        }
+        if (confidenceScore < 70) {
+          report.improvements.push("Work on speaking with more confidence");
+        }
       }
-
-      const report = await aiService.generatePerformanceReport(
-        transcriptRef.current,
-        sessionState.analytics,
-        segmentsRef.current.map(s => ({
-          id: s.id,
-          text: s.text,
-          timestamp: s.timestamp,
-          confidence: s.confidence
-        })),
-        durationInMinutes,
-        sessionId
-      );
 
       onPerformanceReportGenerated?.(report);
-      
-      const sessionData = {
-        id: sessionId,
-        timestamp: Date.now(),
-        platform: "Live Meeting",
-        duration: durationInMinutes,
-        transcript: transcriptRef.current,
-        analytics: sessionState.analytics,
-        suggestions: [],
-        performanceReport: report
-      };
-      
-      await chromeStorage.saveSession(sessionData);
-      toast({ title: "Report Generated!", description: "Your performance report is ready." });
+
+      setSessionState(prev => ({
+        ...prev,
+        isActive: false,
+        isRecording: false,
+        status: 'idle'
+      }));
+
+      toast({
+        title: "Session Complete",
+        description: "Performance report generated successfully",
+      });
 
     } catch (error) {
-      console.error('Error generating performance report:', error);
-      toast({ title: "Report Error", description: `Failed to generate report: ${error}`, variant: "destructive" });
+      console.error('Error stopping session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate performance report",
+        variant: "destructive",
+      });
     } finally {
       setIsGeneratingReport(false);
     }
-  }, [
-    sessionState.sessionStartTime, 
-    sessionState.analytics, 
-    transcriptRef, 
-    segmentsRef, 
-    onPerformanceReportGenerated, 
-    toast
-  ]);
+  }, [sessionState, transcriptRef, setSessionState, toast, onPerformanceReportGenerated]);
 
-  const stopSession = useCallback(async () => {
-    unifiedAudioService.stopCapturing();
-    
-    await generatePerformanceReport();
-    
+  const toggleRecording = useCallback(() => {
     setSessionState(prev => ({
       ...prev,
-      isActive: false,
-      isRecording: false,
-      status: 'idle'
+      isRecording: !prev.isRecording
     }));
 
     toast({
-      title: "Session Stopped",
-      description: "Audio capture has been stopped",
+      title: sessionState.isRecording ? "Recording Paused" : "Recording Resumed",
+      description: sessionState.isRecording ? "Microphone muted" : "Microphone active",
     });
-  }, [setSessionState, toast, generatePerformanceReport]);
-
-  const toggleRecording = useCallback(() => {
-    if (!sessionState.isActive) return;
-
-    if (sessionState.isRecording) {
-      unifiedAudioService.pauseListening();
-    } else {
-      unifiedAudioService.resumeListening();
-    }
-  }, [sessionState.isActive, sessionState.isRecording]);
-
-  const clearTranscript = useCallback(() => {
-    transcriptRef.current = '';
-    segmentsRef.current = [];
-    
-    setSessionState(prev => ({
-      ...prev,
-      transcript: '',
-      segments: [],
-      currentSuggestion: null,
-      lastQuestion: null
-    }));
-  }, [setSessionState, transcriptRef, segmentsRef]);
-
-  const dismissSuggestion = useCallback(() => {
-    setSessionState(prev => ({
-      ...prev,
-      currentSuggestion: null
-    }));
-  }, [setSessionState]);
+  }, [sessionState.isRecording, setSessionState, toast]);
 
   const setSuggestion = useCallback((suggestion: AISuggestion) => {
     setSessionState(prev => ({
@@ -189,31 +173,11 @@ export const useSessionActions = ({
     }));
   }, [setSessionState]);
 
-  const clearError = useCallback(() => {
-    setSessionState(prev => ({
-      ...prev,
-      errorMessage: null,
-      status: prev.isActive ? 'capturing' : 'idle'
-    }));
-  }, [setSessionState]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (sessionState.isActive) {
-        unifiedAudioService.stopCapturing();
-      }
-    };
-  }, [sessionState.isActive]);
-
   return {
     startSession,
     stopSession,
     toggleRecording,
-    isGeneratingReport,
-    clearTranscript,
-    dismissSuggestion,
     setSuggestion,
-    clearError
+    isGeneratingReport
   };
 };

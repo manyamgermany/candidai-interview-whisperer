@@ -1,196 +1,211 @@
-import { OpenAIProvider } from './ai/providers/openaiProvider';
-import { PromptBuilder } from './ai/promptBuilder';
-import { FallbackProvider } from './ai/fallbackProvider';
-import { AIResponse } from './ai/types';
-import { personalizedResponseService } from './personalizedResponseService';
-import { performanceScoringService } from './performanceScoring';
-import { IndustrySpecificModels } from './ai/industryModels';
-import { InterviewType, IndustryType, PerformanceReport } from '@/types/interviewTypes';
-import { SpeechAnalytics, TranscriptSegment } from './speechService';
 
-export type { AIResponse };
+export interface AIResponse {
+  suggestion: string;
+  confidence: number;
+  framework?: string;
+  reasoning?: string;
+}
+
+export interface AIProvider {
+  name: string;
+  endpoint: string;
+  apiKey: string;
+  model: string;
+}
 
 export class AIService {
-  private openaiProvider = new OpenAIProvider();
-  private currentProvider = 'openai';
-  private requestQueue: Promise<any>[] = [];
-  private maxConcurrentRequests = 3;
+  private providers: AIProvider[] = [];
+  private currentProviderIndex = 0;
 
-  async configure(provider: string, apiKey: string, model?: string) {
-    if (provider === 'openai') {
-      this.openaiProvider.configure(apiKey, model);
-      return true;
-    }
-    return false;
+  constructor() {
+    this.loadProviders();
   }
 
-  async generateSuggestion(
-    context: string, 
-    questionType: string = 'general',
-    framework: string = 'star'
-  ): Promise<AIResponse> {
-    // Check if we have too many concurrent requests
-    if (this.requestQueue.length >= this.maxConcurrentRequests) {
-      await Promise.race(this.requestQueue);
+  private loadProviders() {
+    // Load from environment or local storage
+    const savedProviders = localStorage.getItem('ai-providers');
+    if (savedProviders) {
+      this.providers = JSON.parse(savedProviders);
+    } else {
+      // Default providers
+      this.providers = [
+        {
+          name: 'OpenAI',
+          endpoint: 'https://api.openai.com/v1/chat/completions',
+          apiKey: process.env.REACT_APP_OPENAI_API_KEY || '',
+          model: 'gpt-4'
+        },
+        {
+          name: 'Anthropic',
+          endpoint: 'https://api.anthropic.com/v1/messages',
+          apiKey: process.env.REACT_APP_ANTHROPIC_API_KEY || '',
+          model: 'claude-3-sonnet-20240229'
+        }
+      ];
     }
+  }
 
-    if (!this.openaiProvider.isConfigured()) {
-      return FallbackProvider.generateFallbackResponse(context, framework);
+  async generateSuggestion(prompt: string, questionType: string): Promise<AIResponse> {
+    const provider = this.providers[this.currentProviderIndex];
+    
+    if (!provider || !provider.apiKey) {
+      return this.getFallbackResponse(questionType);
     }
-
-    const requestPromise = this.makePersonalizedRequest(context, questionType, framework);
-    this.requestQueue.push(requestPromise);
 
     try {
-      const response = await requestPromise;
+      const response = await this.callProvider(provider, prompt, questionType);
       return response;
     } catch (error) {
-      console.error(`AI service error with ${this.currentProvider}:`, error);
-      return FallbackProvider.generateFallbackResponse(context, framework);
-    } finally {
-      const index = this.requestQueue.indexOf(requestPromise);
-      if (index > -1) {
-        this.requestQueue.splice(index, 1);
+      console.error(`AI provider ${provider.name} failed:`, error);
+      
+      // Try next provider
+      this.currentProviderIndex = (this.currentProviderIndex + 1) % this.providers.length;
+      
+      if (this.currentProviderIndex === 0) {
+        // All providers failed, return fallback
+        return this.getFallbackResponse(questionType);
       }
+      
+      return this.generateSuggestion(prompt, questionType);
     }
   }
 
-  private async makePersonalizedRequest(
-    context: string,
-    questionType: string,
-    framework: string
-  ): Promise<AIResponse> {
-    // Get personalized prompt
-    const personalizedPrompt = personalizedResponseService.generatePersonalizedResponse(
-      context, 
-      questionType, 
-      framework
-    );
+  private async callProvider(provider: AIProvider, prompt: string, questionType: string): Promise<AIResponse> {
+    if (provider.name === 'OpenAI') {
+      return this.callOpenAI(provider, prompt, questionType);
+    } else if (provider.name === 'Anthropic') {
+      return this.callAnthropic(provider, prompt, questionType);
+    }
     
-    return await this.openaiProvider.generateSuggestion(personalizedPrompt, framework);
+    throw new Error(`Unsupported provider: ${provider.name}`);
   }
 
-  async generatePerformanceReport(
-    transcript: string,
-    speechAnalytics: SpeechAnalytics,
-    segments: TranscriptSegment[],
-    sessionDuration: number,
-    sessionId: string
-  ): Promise<PerformanceReport> {
-    const userProfile = personalizedResponseService.getUserProfile();
-    const interviewType: InterviewType = userProfile?.interviewType || 'general';
-    const industry: IndustryType = (userProfile?.targetIndustry as IndustryType) || 'general';
+  private async callOpenAI(provider: AIProvider, prompt: string, questionType: string): Promise<AIResponse> {
+    const response = await fetch(provider.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${provider.apiKey}`
+      },
+      body: JSON.stringify({
+        model: provider.model,
+        messages: [
+          {
+            role: 'system',
+            content: `You are an AI interview coach. Provide helpful, specific suggestions for ${questionType} questions. Format your response as JSON with 'suggestion', 'confidence', and 'framework' fields.`
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 150,
+        temperature: 0.7
+      })
+    });
 
-    const metrics = performanceScoringService.calculatePerformanceMetrics(
-      transcript,
-      speechAnalytics,
-      segments,
-      interviewType,
-      industry
-    );
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
 
-    const analytics = performanceScoringService.generateDetailedAnalytics(
-      transcript,
-      speechAnalytics,
-      segments
-    );
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content;
+    
+    try {
+      const parsed = JSON.parse(content);
+      return {
+        suggestion: parsed.suggestion,
+        confidence: parsed.confidence || 80,
+        framework: parsed.framework || 'General'
+      };
+    } catch {
+      return {
+        suggestion: content,
+        confidence: 75,
+        framework: 'General'
+      };
+    }
+  }
 
-    const recommendations = this.generateRecommendations(metrics, analytics, industry);
-    const nextSteps = this.generateNextSteps(metrics, interviewType);
+  private async callAnthropic(provider: AIProvider, prompt: string, questionType: string): Promise<AIResponse> {
+    const response = await fetch(provider.endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': provider.apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: provider.model,
+        max_tokens: 150,
+        messages: [
+          {
+            role: 'user',
+            content: `As an AI interview coach, provide a helpful suggestion for this ${questionType} question: ${prompt}. Respond in JSON format with 'suggestion', 'confidence', and 'framework' fields.`
+          }
+        ]
+      })
+    });
 
+    if (!response.ok) {
+      throw new Error(`Anthropic API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.content[0]?.text;
+    
+    try {
+      const parsed = JSON.parse(content);
+      return {
+        suggestion: parsed.suggestion,
+        confidence: parsed.confidence || 80,
+        framework: parsed.framework || 'General'
+      };
+    } catch {
+      return {
+        suggestion: content,
+        confidence: 75,
+        framework: 'General'
+      };
+    }
+  }
+
+  private getFallbackResponse(questionType: string): AIResponse {
+    const fallbacks = {
+      behavioral: {
+        suggestion: "Use the STAR method: describe the Situation, Task, Action, and Result from a specific example.",
+        framework: "STAR"
+      },
+      technical: {
+        suggestion: "Break down the problem step-by-step and explain your thought process clearly.",
+        framework: "Problem-Solving"
+      },
+      situational: {
+        suggestion: "Consider multiple perspectives and explain your decision-making process.",
+        framework: "Decision-Making"
+      },
+      general: {
+        suggestion: "Be specific, provide examples, and connect your answer to the role requirements.",
+        framework: "General"
+      }
+    };
+
+    const fallback = fallbacks[questionType as keyof typeof fallbacks] || fallbacks.general;
+    
     return {
-      sessionId,
-      timestamp: Date.now(),
-      interviewType,
-      industry,
-      duration: sessionDuration,
-      metrics,
-      analytics,
-      recommendations,
-      nextSteps
+      suggestion: fallback.suggestion,
+      confidence: 70,
+      framework: fallback.framework
     };
   }
 
-  private generateRecommendations(metrics: any, analytics: any, industry: IndustryType): string[] {
-    const recommendations: string[] = [];
-    
-    if (metrics.communicationScore < 70) {
-      recommendations.push('Practice speaking at a steady pace and reducing filler words');
-    }
-    
-    if (metrics.technicalScore < 70) {
-      const industryKeywords = IndustrySpecificModels.getIndustryKeywords(industry);
-      recommendations.push(`Incorporate more ${industry} terminology: ${industryKeywords.slice(0, 3).join(', ')}`);
-    }
-    
-    if (metrics.leadershipScore < 70) {
-      recommendations.push('Include more examples of leadership and team collaboration');
-    }
-    
-    if (metrics.confidenceScore < 70) {
-      recommendations.push('Use more assertive language and specific examples');
-    }
-    
-    if (!analytics.responseStructure.usedFramework) {
-      const frameworks = IndustrySpecificModels.getRecommendedFrameworks(industry);
-      recommendations.push(`Use structured frameworks like ${frameworks[0]} for better organization`);
-    }
-
-    return recommendations;
+  updateProviders(providers: AIProvider[]) {
+    this.providers = providers;
+    localStorage.setItem('ai-providers', JSON.stringify(providers));
   }
 
-  private generateNextSteps(metrics: any, interviewType: InterviewType): string[] {
-    const nextSteps: string[] = [];
-    
-    if (metrics.overallScore < 60) {
-      nextSteps.push('Schedule additional practice sessions');
-      nextSteps.push('Focus on fundamental interview skills');
-    } else if (metrics.overallScore < 80) {
-      nextSteps.push('Practice specific weak areas identified in the report');
-      nextSteps.push('Review industry-specific examples and terminology');
-    } else {
-      nextSteps.push('Maintain current performance level');
-      nextSteps.push('Focus on advanced techniques for your target role');
-    }
-    
-    // Interview type specific next steps
-    if (interviewType === 'technical') {
-      nextSteps.push('Practice coding problems and system design');
-    } else if (interviewType === 'behavioral') {
-      nextSteps.push('Prepare more STAR method examples');
-    } else if (interviewType === 'executive') {
-      nextSteps.push('Focus on strategic thinking and vision examples');
-    }
-
-    return nextSteps;
-  }
-
-  setPrimaryProvider(provider: string) {
-    if (provider === 'openai') {
-      this.currentProvider = provider;
-      console.log(`Primary provider set to: ${provider}`);
-    }
-  }
-
-  getAvailableProviders(): Array<{id: string, name: string, configured: boolean}> {
-    return [
-      {
-        id: 'openai',
-        name: 'OpenAI',
-        configured: this.openaiProvider.isConfigured()
-      }
-    ];
-  }
-
-  getCurrentProvider(): string {
-    return this.currentProvider;
-  }
-
-  async testProvider(providerId: string): Promise<boolean> {
-    if (providerId === 'openai') {
-      return await this.openaiProvider.test();
-    }
-    return false;
+  getProviders(): AIProvider[] {
+    return this.providers;
   }
 }
 
