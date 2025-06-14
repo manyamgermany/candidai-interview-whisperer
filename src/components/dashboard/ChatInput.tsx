@@ -16,13 +16,62 @@ interface ChatMessage {
 interface ChatInputProps {
   onMessagesUpdate: (messages: ChatMessage[]) => void;
   onLoadingChange: (isLoading: boolean) => void;
+  sessionActive?: boolean;
+  currentTranscript?: string;
 }
 
-export const ChatInput = ({ onMessagesUpdate, onLoadingChange }: ChatInputProps) => {
+export const ChatInput = ({ 
+  onMessagesUpdate, 
+  onLoadingChange, 
+  sessionActive = false,
+  currentTranscript = ""
+}: ChatInputProps) => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const { toast } = useToast();
+
+  const buildInterviewContext = (keywords: string): string => {
+    const baseContext = `You are an expert interview coach providing real-time assistance during an active interview/meeting session.`;
+    
+    let context = baseContext;
+    
+    // Add session context
+    if (sessionActive) {
+      context += ` The user is currently in an active interview session.`;
+      
+      if (currentTranscript && currentTranscript.trim().length > 0) {
+        const recentTranscript = currentTranscript.split(' ').slice(-50).join(' ');
+        context += ` Recent conversation context: "${recentTranscript}"`;
+      }
+    } else {
+      context += ` The user is preparing for an interview.`;
+    }
+    
+    // Add user profile context from localStorage
+    const focusKeywords = JSON.parse(localStorage.getItem('userFocusKeywords') || '[]');
+    const currentRole = localStorage.getItem('userCurrentRole') || '';
+    const careerSummary = localStorage.getItem('userCareerSummary') || '';
+    
+    if (focusKeywords.length > 0) {
+      context += ` User's focus keywords: ${focusKeywords.join(', ')}.`;
+    }
+    
+    if (currentRole) {
+      context += ` User's current/target role: ${currentRole}.`;
+    }
+    
+    if (careerSummary) {
+      context += ` User's background: ${careerSummary}.`;
+    }
+    
+    // Add the user's specific query
+    context += ` User is asking about: "${keywords}".`;
+    
+    context += ` Provide a concise, actionable response (2-3 sentences) that helps them respond effectively in an interview context. Focus on specific talking points, examples they could mention, or how to structure their answer using frameworks like STAR method when appropriate.`;
+    
+    return context;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,13 +88,18 @@ export const ChatInput = ({ onMessagesUpdate, onLoadingChange }: ChatInputProps)
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     onMessagesUpdate(updatedMessages);
+    
+    const userInput = input.trim();
     setInput("");
     setIsLoading(true);
     onLoadingChange(true);
 
     try {
+      // Build interview-specific context
+      const interviewContext = buildInterviewContext(userInput);
+      
       const response = await aiService.generateSuggestion(
-        `User is asking about: "${input}". Provide helpful interview advice or suggestions related to this topic.`,
+        interviewContext,
         'general',
         'prep'
       );

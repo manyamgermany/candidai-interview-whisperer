@@ -18,21 +18,21 @@ export class PromptBuilder {
 
     const userProfileContext = this.getUserProfileContext();
 
-    return `You are an expert interview coach providing real-time assistance to a candidate.
+    return `You are an expert interview coach providing real-time assistance to a candidate during an interview or meeting.
 
 Context: "${context}"
 Question Type: ${questionTypes[questionType as keyof typeof questionTypes] || questionTypes.general}
-Framework: ${frameworks[framework as keyof typeof frameworks] || frameworks.star}
+Framework: ${frameworks[framework as keyof typeof frameworks] || frameworks.prep}
 
 ${userProfileContext}
 
-Provide a concise, actionable suggestion (1-2 sentences) to help the candidate respond effectively. Focus on:
-1. Key points to mention based on their background
-2. Structure for the response using the specified framework
-3. Specific advice leveraging their skills and experience
-4. How to incorporate their focus keywords naturally
+Provide a concise, actionable suggestion (2-3 sentences) to help the candidate respond effectively in an interview context. Focus on:
+1. Specific talking points or examples they should mention based on their background
+2. How to structure their response using the specified framework
+3. Key phrases or terminology to include that align with their target role
+4. Quick tips to sound confident and knowledgeable
 
-Be supportive, specific, and immediately actionable. Use their actual experience and skills in your suggestions.`;
+Be supportive, specific, and immediately actionable for interview success. Use their actual experience and skills in your suggestions.`;
   }
 
   private static getUserProfileContext(): string {
@@ -51,7 +51,7 @@ Be supportive, specific, and immediately actionable. Use their actual experience
         const analysis = latestDoc.analysis;
         contextStr += `\nCandidate Profile:
 - Name: ${analysis.personalInfo?.name || 'Not specified'}
-- Current Role: ${currentRole || 'Not specified'}
+- Current Role: ${currentRole || analysis.personalInfo?.currentRole || 'Not specified'}
 - Technical Skills: ${analysis.skills?.technical?.join(', ') || 'Not specified'}
 - Soft Skills: ${analysis.skills?.soft?.join(', ') || 'Not specified'}`;
 

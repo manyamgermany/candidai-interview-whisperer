@@ -200,6 +200,8 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
           <ChatInput 
             onMessagesUpdate={setChatMessages}
             onLoadingChange={setIsChatLoading}
+            sessionActive={sessionActive}
+            currentTranscript={transcript}
           />
         </div>
       </div>
