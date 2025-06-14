@@ -169,15 +169,15 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const exportAnalysis = (document: ProcessedDocument) => {
-    if (!document.analysis) return;
+  const exportAnalysis = (processedDocument: ProcessedDocument) => {
+    if (!processedDocument.analysis) return;
     
-    const dataStr = JSON.stringify(document.analysis, null, 2);
+    const dataStr = JSON.stringify(processedDocument.analysis, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
+    const link = window.document.createElement('a');
     link.href = url;
-    link.download = `${document.name}_analysis.json`;
+    link.download = `${processedDocument.name}_analysis.json`;
     link.click();
     URL.revokeObjectURL(url);
   };

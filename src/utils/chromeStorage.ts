@@ -1,3 +1,4 @@
+
 // Chrome Storage utilities for settings persistence
 export interface StorageSettings {
   aiProvider: {
@@ -191,6 +192,39 @@ export const chromeStorage = {
     } catch (error) {
       console.error('Failed to get storage info:', error);
       return { used: 0, total: 0 };
+    }
+  },
+
+  // Generic storage methods for documents
+  async getItem(key: string): Promise<any> {
+    try {
+      if (isExtensionContext()) {
+        const result = await window.chrome.storage.local.get(key);
+        return result[key];
+      }
+      
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem(key);
+        return stored ? JSON.parse(stored) : null;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`Failed to get item ${key}:`, error);
+      return null;
+    }
+  },
+
+  async setItem(key: string, value: any): Promise<void> {
+    try {
+      if (isExtensionContext()) {
+        await window.chrome.storage.local.set({ [key]: value });
+      } else if (typeof window !== 'undefined') {
+        localStorage.setItem(key, JSON.stringify(value));
+      }
+    } catch (error) {
+      console.error(`Failed to set item ${key}:`, error);
+      throw new Error(`Item ${key} could not be saved`);
     }
   }
 };
