@@ -6,6 +6,8 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, Loader2, Zap, AlertTriangle } from "lucide-react";
+import { RetryService } from "@/services/retryService";
+import { providerFallbackService } from "@/services/providerFallbackService";
 
 interface BulkActionsPanelProps {
   settings: any;
@@ -17,6 +19,7 @@ export const BulkActionsPanel = ({ settings, onTestResults }: BulkActionsPanelPr
   const [testing, setTesting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<any>(null);
+  const [currentOperation, setCurrentOperation] = useState<string>("");
 
   const providers = [
     { id: "openai", name: "OpenAI", hasKey: !!settings.aiProvider?.openaiKey },
@@ -27,44 +30,69 @@ export const BulkActionsPanel = ({ settings, onTestResults }: BulkActionsPanelPr
   const testAllConnections = async () => {
     setTesting(true);
     setProgress(0);
-    const testResults: any = {};
+    setResults(null);
+    
     const providersWithKeys = providers.filter(p => p.hasKey);
-
-    for (let i = 0; i < providersWithKeys.length; i++) {
-      const provider = providersWithKeys[i];
-      setProgress((i / providersWithKeys.length) * 100);
-
-      try {
-        // Simulate API test with timeout
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Mock test results
-        const success = Math.random() > 0.3; // 70% success rate for demo
-        testResults[provider.id] = {
-          success,
-          responseTime: Math.floor(Math.random() * 2000) + 500,
-          error: success ? null : "API key invalid or rate limited"
-        };
-      } catch (error) {
-        testResults[provider.id] = {
-          success: false,
-          responseTime: null,
-          error: "Connection timeout"
-        };
-      }
+    
+    if (providersWithKeys.length === 0) {
+      toast({
+        title: "No API Keys",
+        description: "Please configure at least one API key before testing.",
+        variant: "destructive"
+      });
+      setTesting(false);
+      return;
     }
 
-    setProgress(100);
-    setResults(testResults);
-    setTesting(false);
-    onTestResults(testResults);
+    try {
+      // Use the new retry service for bulk operations
+      const operations = providersWithKeys.map(provider => ({
+        id: provider.id,
+        operation: async () => {
+          setCurrentOperation(`Testing ${provider.name}...`);
+          
+          // Simulate the actual test with the provider's API
+          const startTime = Date.now();
+          const success = await providerFallbackService.testAllProviders();
+          const responseTime = Date.now() - startTime;
+          
+          return {
+            success: success[provider.id]?.success || false,
+            responseTime: success[provider.id]?.responseTime || responseTime,
+            error: success[provider.id]?.error || null
+          };
+        }
+      }));
 
-    const successCount = Object.values(testResults).filter((r: any) => r.success).length;
-    toast({
-      title: "Bulk Connection Test Complete",
-      description: `${successCount}/${providersWithKeys.length} providers connected successfully`,
-      variant: successCount === providersWithKeys.length ? "default" : "destructive"
-    });
+      const testResults = await RetryService.retryBulkOperations(
+        operations,
+        (completed, total, currentResults) => {
+          setProgress((completed / total) * 100);
+          setResults(currentResults);
+        }
+      );
+
+      setResults(testResults);
+      onTestResults(testResults);
+
+      const successCount = Object.values(testResults).filter((r: any) => r.success).length;
+      toast({
+        title: "Bulk Connection Test Complete",
+        description: `${successCount}/${providersWithKeys.length} providers connected successfully`,
+        variant: successCount === providersWithKeys.length ? "default" : "destructive"
+      });
+      
+    } catch (error) {
+      toast({
+        title: "Test Failed",
+        description: "Failed to complete connection tests. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setTesting(false);
+      setCurrentOperation("");
+      setProgress(100);
+    }
   };
 
   return (
@@ -80,7 +108,7 @@ export const BulkActionsPanel = ({ settings, onTestResults }: BulkActionsPanelPr
           <div>
             <h4 className="font-medium">Test All Connections</h4>
             <p className="text-sm text-gray-500">
-              Verify all configured API providers at once
+              Verify all configured API providers with automatic retry on failure
             </p>
           </div>
           <Button 
@@ -105,7 +133,7 @@ export const BulkActionsPanel = ({ settings, onTestResults }: BulkActionsPanelPr
         {testing && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span>Testing providers...</span>
+              <span>{currentOperation || "Preparing tests..."}</span>
               <span>{Math.round(progress)}%</span>
             </div>
             <Progress value={progress} className="h-2" />
@@ -133,16 +161,23 @@ export const BulkActionsPanel = ({ settings, onTestResults }: BulkActionsPanelPr
                     {result.success ? (
                       <>
                         <Badge variant="secondary" className="bg-green-100 text-green-700">
-                          {result.responseTime}ms
+                          {result.result?.responseTime || 'N/A'}ms
                         </Badge>
                         <Badge variant="secondary" className="bg-green-100 text-green-700">
                           Connected
                         </Badge>
                       </>
                     ) : (
-                      <Badge variant="destructive">
-                        Failed
-                      </Badge>
+                      <>
+                        <Badge variant="destructive">
+                          Failed
+                        </Badge>
+                        {result.error && (
+                          <span className="text-xs text-red-600 max-w-32 truncate" title={result.error}>
+                            {result.error}
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

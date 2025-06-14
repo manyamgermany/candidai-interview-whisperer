@@ -14,6 +14,9 @@ import { ConfigTemplates } from "./settings/ConfigTemplates";
 import { EnhancedSettingsSearch } from "./settings/EnhancedSettingsSearch";
 import { SectionResetButtons } from "./settings/SectionResetButtons";
 import { AdvancedFeaturesTab } from "./settings/AdvancedFeaturesTab";
+import { SetupWizard } from "./settings/SetupWizard";
+import { smartDefaultsService } from "@/services/smartDefaultsService";
+import { providerFallbackService } from "@/services/providerFallbackService";
 
 interface SettingsPanelProps {
   onNavigate: (tab: string) => void;
@@ -26,18 +29,47 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showWizard, setShowWizard] = useState(false);
+  const [isFirstTime, setIsFirstTime] = useState(false);
 
   // Load settings on mount
   useEffect(() => {
     loadSettings();
+    initializeServices();
   }, []);
+
+  const initializeServices = async () => {
+    try {
+      await smartDefaultsService.initialize();
+    } catch (error) {
+      console.warn('Failed to initialize smart defaults:', error);
+    }
+  };
 
   const loadSettings = async () => {
     try {
       setLoading(true);
       setError(null);
       const loadedSettings = await chromeStorage.getSettings();
-      setSettings(loadedSettings || getDefaultSettings());
+      
+      // Check if this is first time (no API keys configured)
+      const hasApiKeys = loadedSettings?.aiProvider?.openaiKey || 
+                        loadedSettings?.aiProvider?.claudeKey || 
+                        loadedSettings?.aiProvider?.geminiKey;
+      
+      if (!hasApiKeys && !loadedSettings?.setupCompleted) {
+        setIsFirstTime(true);
+        setShowWizard(true);
+      }
+      
+      const finalSettings = loadedSettings || getDefaultSettings();
+      setSettings(finalSettings);
+      
+      // Initialize provider fallback service with configured providers
+      if (finalSettings.aiProvider) {
+        initializeProviderFallback(finalSettings.aiProvider);
+      }
+      
     } catch (error) {
       console.error('Failed to load settings:', error);
       setError('Failed to load settings. Please refresh and try again.');
@@ -47,46 +79,84 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
     }
   };
 
-  const getDefaultSettings = () => ({
-    aiProvider: {
-      primary: "openai",
-      openaiKey: '',
-      claudeKey: '',
-      geminiKey: '',
-      models: {
-        openai: 'gpt-4o-mini',
-        claude: 'claude-3-haiku-20240307',
-        gemini: 'gemini-pro'
+  const initializeProviderFallback = (aiProviderSettings: any) => {
+    const providers = [
+      { id: 'openai', name: 'OpenAI', priority: 1 },
+      { id: 'claude', name: 'Claude', priority: 2 },
+      { id: 'gemini', name: 'Gemini', priority: 3 }
+    ];
+
+    providers.forEach(provider => {
+      const apiKey = aiProviderSettings[`${provider.id}Key`];
+      if (apiKey) {
+        providerFallbackService.addProvider({
+          ...provider,
+          apiKey,
+          model: aiProviderSettings.models?.[provider.id] || 'default'
+        });
       }
-    },
-    responseStyle: {
-      tone: "professional",
-      length: 'medium',
-      formality: 'formal'
-    },
-    audio: {
-      inputDevice: 'default',
-      outputDevice: 'default',
-      noiseReduction: false,
-      autoGainControl: true
-    },
-    coaching: {
-      enableRealtime: true,
-      frameworks: ['star', 'soar'],
-      experienceLevel: 'mid'
-    },
-    analytics: {
-      enableTracking: false,
-      trackWPM: true,
-      trackFillers: true,
-      trackConfidence: true
+    });
+  };
+
+  const getDefaultSettings = () => {
+    // Use smart defaults if available, otherwise use static defaults
+    if (isFirstTime) {
+      return smartDefaultsService.getSmartDefaults('new-user');
     }
-  });
+    
+    return {
+      aiProvider: {
+        primary: "openai",
+        openaiKey: '',
+        claudeKey: '',
+        geminiKey: '',
+        models: {
+          openai: 'gpt-4o-mini',
+          claude: 'claude-3-haiku-20240307',
+          gemini: 'gemini-pro'
+        }
+      },
+      responseStyle: {
+        tone: "professional",
+        length: 'medium',
+        formality: 'formal'
+      },
+      audio: {
+        inputDevice: 'default',
+        outputDevice: 'default',
+        noiseReduction: false,
+        autoGainControl: true,
+        confidenceThreshold: 75,
+        fillerSensitivity: 3
+      },
+      coaching: {
+        enableRealtime: true,
+        frameworks: ['star', 'soar'],
+        experienceLevel: 'mid'
+      },
+      analytics: {
+        enableTracking: false,
+        trackWPM: true,
+        trackFillers: true,
+        trackConfidence: true
+      },
+      privacy: {
+        localDataProcessing: true,
+        sessionRecording: true
+      }
+    };
+  };
 
   const saveSettings = async (newSettings: any) => {
     try {
-      await chromeStorage.saveSettings(newSettings);
+      await chromeStorage.saveSettings({ ...newSettings, setupCompleted: true });
       setSettings(newSettings);
+      
+      // Update provider fallback service
+      initializeProviderFallback(newSettings.aiProvider);
+      
+      // Record successful configuration for smart defaults
+      smartDefaultsService.recordSuccessfulConfig(newSettings);
       
       toast({
         title: "Settings Saved",
@@ -100,6 +170,22 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleWizardComplete = async (wizardSettings: any) => {
+    await saveSettings(wizardSettings);
+    setShowWizard(false);
+    setIsFirstTime(false);
+    
+    toast({
+      title: "Welcome to CandidAI!",
+      description: "Your personalized setup is complete. You can always adjust settings later.",
+    });
+  };
+
+  const handleWizardSkip = () => {
+    setShowWizard(false);
+    setIsFirstTime(false);
   };
 
   const resetSection = (section: string) => {
@@ -206,6 +292,13 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
 
   return (
     <SettingsErrorBoundary>
+      {showWizard && (
+        <SetupWizard 
+          onComplete={handleWizardComplete}
+          onSkip={handleWizardSkip}
+        />
+      )}
+      
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50">
         {/* Header */}
         <header className="bg-white/80 backdrop-blur-sm border-b border-pink-100 sticky top-0 z-50">
@@ -242,6 +335,18 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                 />
                 <ConfigTemplates onApplyTemplate={saveSettings} />
                 <SectionResetButtons onResetSection={resetSection} />
+                
+                {!isFirstTime && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowWizard(true)}
+                    className="border-pink-200 text-pink-600 hover:bg-pink-50"
+                  >
+                    Setup Wizard
+                  </Button>
+                )}
+                
                 <input
                   type="file"
                   accept=".json"
