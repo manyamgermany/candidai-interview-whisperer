@@ -1,4 +1,3 @@
-
 import { aiService } from './aiService';
 import { documentStorageService } from './documentStorageService';
 import { ProcessedDocument } from '@/types/documentTypes';
@@ -121,7 +120,8 @@ export class AISuggestionService {
       if (relevantDocs.length > 0) {
         enhancedContext += `\nRelevant background from user documents:\n`;
         relevantDocs.forEach(doc => {
-          enhancedContext += `- ${doc.analysis?.summary || doc.name || 'Document summary not available'}\n`;
+          const docDescription = this.getDocumentDescription(doc);
+          enhancedContext += `- ${docDescription}\n`;
         });
       }
     }
@@ -129,13 +129,42 @@ export class AISuggestionService {
     return enhancedContext;
   }
 
+  private getDocumentDescription(doc: ProcessedDocument): string {
+    if (doc.analysis?.personalInfo?.name) {
+      return `Profile for ${doc.analysis.personalInfo.name}`;
+    }
+    return doc.name || 'Document';
+  }
+
   private findRelevantDocuments(analysis: AudioAnalysis): ProcessedDocument[] {
     const keywords = this.extractKeywords(analysis.transcript);
     
     return this.userDocuments.filter(doc => {
-      const docText = (doc.analysis?.summary || doc.name || '').toLowerCase();
+      const docText = this.getSearchableText(doc).toLowerCase();
       return keywords.some(keyword => docText.includes(keyword.toLowerCase()));
     }).slice(0, 2); // Limit to most relevant documents
+  }
+
+  private getSearchableText(doc: ProcessedDocument): string {
+    const parts = [];
+    
+    if (doc.analysis?.personalInfo?.name) {
+      parts.push(doc.analysis.personalInfo.name);
+    }
+    
+    if (doc.analysis?.skills?.technical) {
+      parts.push(...doc.analysis.skills.technical);
+    }
+    
+    if (doc.analysis?.skills?.soft) {
+      parts.push(...doc.analysis.skills.soft);
+    }
+    
+    if (doc.name) {
+      parts.push(doc.name);
+    }
+    
+    return parts.join(' ');
   }
 
   private extractKeywords(text: string): string[] {
