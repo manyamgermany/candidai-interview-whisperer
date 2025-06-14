@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Upload, User, FileText } from "lucide-react";
@@ -8,10 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProfileManager from "@/components/profile/ProfileManager";
 import DocumentProcessor from "@/components/DocumentProcessor";
 import { useDocumentProcessor } from "@/hooks/useDocumentProcessor";
+import { useToast } from "@/hooks/use-toast";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("profile");
+  const { toast } = useToast();
   const {
     uploadedFiles,
     isProcessing,
@@ -29,11 +31,28 @@ const ProfilePage = () => {
   // Get the latest completed document analysis
   const latestAnalysis = uploadedFiles.find(f => f.status === 'completed' && f.analysis)?.analysis;
 
-  const handleDocumentUploaded = () => {
-    // Switch to profile tab when document is processed
-    if (processingComplete && latestAnalysis) {
+  // Auto-switch to profile tab when document processing completes
+  useEffect(() => {
+    if (processingComplete && latestAnalysis && activeTab === "documents") {
       setActiveTab("profile");
+      toast({
+        title: "Document Processed",
+        description: "Switching to profile tab with extracted data.",
+      });
     }
+  }, [processingComplete, latestAnalysis, activeTab, toast]);
+
+  const handleDocumentProcessed = () => {
+    // Automatically switch to profile tab when document is processed
+    setActiveTab("profile");
+  };
+
+  const handleProfileUpdate = (updatedData: any) => {
+    // Handle profile updates and notify user
+    toast({
+      title: "Profile Updated",
+      description: "Your profile changes have been saved successfully.",
+    });
   };
 
   return (
@@ -59,10 +78,16 @@ const ProfilePage = () => {
             <TabsTrigger value="profile" className="flex items-center space-x-2">
               <User className="h-4 w-4" />
               <span>Profile Details</span>
+              {latestAnalysis && (
+                <div className="w-2 h-2 bg-green-500 rounded-full ml-1" title="Data available from document" />
+              )}
             </TabsTrigger>
             <TabsTrigger value="documents" className="flex items-center space-x-2">
               <FileText className="h-4 w-4" />
               <span>Document Upload</span>
+              {isProcessing && (
+                <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse ml-1" title="Processing document" />
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -86,6 +111,8 @@ const ProfilePage = () => {
                 <ProfileManager 
                   initialData={latestAnalysis}
                   onNavigate={handleNavigate}
+                  onProfileUpdate={handleProfileUpdate}
+                  key={latestAnalysis ? 'with-data' : 'empty'} // Force re-render when data changes
                 />
               </CardContent>
             </Card>
@@ -105,7 +132,8 @@ const ProfilePage = () => {
               <CardContent>
                 <DocumentProcessor 
                   onNavigate={handleNavigate}
-                  onDocumentProcessed={handleDocumentUploaded}
+                  onDocumentProcessed={handleDocumentProcessed}
+                  compact={true}
                 />
               </CardContent>
             </Card>

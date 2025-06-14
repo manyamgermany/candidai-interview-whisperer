@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Briefcase, GraduationCap, Award, Target, Plus, X, Save, Upload } from "lucide-react";
+import { User, Briefcase, GraduationCap, Award, Target, Plus, X, Save, Upload, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentAnalysis } from "@/types/documentTypes";
 
@@ -51,13 +50,15 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 interface ProfileManagerProps {
   initialData?: DocumentAnalysis;
   onNavigate: (tab: string) => void;
+  onProfileUpdate?: (data: ProfileFormData) => void;
 }
 
-const ProfileManager = ({ initialData, onNavigate }: ProfileManagerProps) => {
+const ProfileManager = ({ initialData, onNavigate, onProfileUpdate }: ProfileManagerProps) => {
   const { toast } = useToast();
   const [newTechnicalSkill, setNewTechnicalSkill] = useState("");
   const [newSoftSkill, setNewSoftSkill] = useState("");
   const [newCertification, setNewCertification] = useState("");
+  const [isDataPopulated, setIsDataPopulated] = useState(false);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -85,7 +86,7 @@ const ProfileManager = ({ initialData, onNavigate }: ProfileManagerProps) => {
 
   // Populate form with document data when available
   useEffect(() => {
-    if (initialData) {
+    if (initialData && !isDataPopulated) {
       const formData: ProfileFormData = {
         personalInfo: {
           name: initialData.personalInfo?.name || "",
@@ -108,13 +109,21 @@ const ProfileManager = ({ initialData, onNavigate }: ProfileManagerProps) => {
       };
       
       form.reset(formData);
+      setIsDataPopulated(true);
       
       toast({
         title: "Profile Populated",
         description: "Your profile has been populated from the uploaded document.",
       });
     }
-  }, [initialData, form, toast]);
+  }, [initialData, form, toast, isDataPopulated]);
+
+  // Reset populated state when initialData changes
+  useEffect(() => {
+    if (!initialData) {
+      setIsDataPopulated(false);
+    }
+  }, [initialData]);
 
   const generateProfessionalSummary = (data: DocumentAnalysis): string => {
     const experience = data.experience?.length || 0;
@@ -143,6 +152,9 @@ const ProfileManager = ({ initialData, onNavigate }: ProfileManagerProps) => {
       // Save profile data to storage
       localStorage.setItem('candidai-profile', JSON.stringify(data));
       
+      // Notify parent component
+      onProfileUpdate?.(data);
+      
       toast({
         title: "Profile Saved",
         description: "Your profile has been saved successfully.",
@@ -153,6 +165,13 @@ const ProfileManager = ({ initialData, onNavigate }: ProfileManagerProps) => {
         description: "Failed to save your profile. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const refreshFromDocument = () => {
+    if (initialData) {
+      setIsDataPopulated(false);
+      // This will trigger the useEffect to repopulate the form
     }
   };
 
@@ -205,12 +224,26 @@ const ProfileManager = ({ initialData, onNavigate }: ProfileManagerProps) => {
     <div className="space-y-6">
       {initialData && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-green-800 font-medium">
-            ✓ Profile populated from uploaded document: {initialData.personalInfo?.name || "Unknown"}
-          </p>
-          <p className="text-green-600 text-sm mt-1">
-            Review and customize the information below as needed.
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-800 font-medium">
+                ✓ Profile populated from uploaded document: {initialData.personalInfo?.name || "Unknown"}
+              </p>
+              <p className="text-green-600 text-sm mt-1">
+                Review and customize the information below as needed.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={refreshFromDocument}
+              className="text-green-700 border-green-300 hover:bg-green-100"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </div>
       )}
 
