@@ -10,6 +10,7 @@ import { VirtualizedSessionList } from "./VirtualizedSessionList";
 import { useAppStore } from "@/store/useAppStore";
 import { storageService } from "@/services/storageService";
 import { SessionData } from "@/types/chromeStorageTypes";
+import { SessionData as StorageSessionData } from "@/types/storageTypes";
 
 export const SessionHistory = () => {
   const { sessions, loadSessions, removeSession, setLoading, loading, setError } = useAppStore();
@@ -29,15 +30,23 @@ export const SessionHistory = () => {
       setLoading('sessions', true);
       setError('sessions', null);
       const sessionData = await storageService.getAllSessions();
-      // Convert sessions to match the expected format
-      const formattedSessions = sessionData.map(session => ({
-        ...session,
-        date: session.date || session.timestamp,
-        timestamp: session.timestamp || session.date,
-        type: session.type || 'practice',
-        performance: session.performance || { score: 0 },
-        platform: session.platform || 'web',
-        suggestions: session.suggestions || []
+      // Convert StorageSessionData to SessionData format
+      const formattedSessions: SessionData[] = sessionData.map((session: StorageSessionData) => ({
+        id: session.id,
+        timestamp: session.date,
+        date: session.date,
+        platform: 'web', // Default platform since it doesn't exist in storageTypes
+        type: session.type,
+        duration: session.duration,
+        transcript: session.transcript,
+        analytics: {
+          wordsPerMinute: session.analytics.wordsPerMinute,
+          fillerWords: session.analytics.fillerWords,
+          confidenceScore: session.analytics.confidenceScore,
+          totalWords: session.analytics.totalWords
+        },
+        performance: session.performance,
+        suggestions: [] // Default empty array since it doesn't exist in storageTypes
       }));
       loadSessions(formattedSessions);
     } catch (error) {
