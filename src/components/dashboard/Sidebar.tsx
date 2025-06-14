@@ -2,11 +2,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, Target, BarChart3, Settings, FileText, Play } from "lucide-react";
+import { User, Target, BarChart3, Settings, FileText, Play, Brain, History } from "lucide-react";
 
 interface SidebarProps {
   onNavigate: (tab: string) => void;
-  onViewChange: (view: 'dashboard' | 'profile' | 'simulator' | 'reports') => void;
+  onViewChange: (view: 'dashboard' | 'profile' | 'simulator' | 'reports' | 'config' | 'history') => void;
 }
 
 export const Sidebar = ({ onNavigate, onViewChange }: SidebarProps) => {
@@ -44,6 +44,24 @@ export const Sidebar = ({ onNavigate, onViewChange }: SidebarProps) => {
           >
             <BarChart3 className="h-4 w-4 mr-3" />
             Performance Reports
+          </Button>
+
+          <Button
+            onClick={() => onViewChange('history')}
+            variant="outline"
+            className="w-full justify-start border-purple-200 text-purple-700 hover:bg-purple-50"
+          >
+            <History className="h-4 w-4 mr-3" />
+            Session History
+          </Button>
+
+          <Button
+            onClick={() => onViewChange('config')}
+            variant="outline"
+            className="w-full justify-start border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+          >
+            <Brain className="h-4 w-4 mr-3" />
+            AI Configuration
           </Button>
           
           <Button

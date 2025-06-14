@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { SpeechAnalytics } from "@/services/speechService";
 import { AIResponse } from "@/services/aiService";
@@ -13,6 +12,9 @@ import { Sidebar } from "./dashboard/Sidebar";
 import { ProfileManager } from "./profile/ProfileManager";
 import { PerformanceReports } from "./dashboard/PerformanceReports";
 import { InterviewSimulator } from "./dashboard/InterviewSimulator";
+import { RealTimeCoaching } from "./dashboard/RealTimeCoaching";
+import { SessionHistory } from "./dashboard/SessionHistory";
+import { AIConfigPanel } from "./dashboard/AIConfigPanel";
 
 interface DashboardProps {
   onNavigate: (tab: string) => void;
@@ -30,7 +32,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
     speakingTime: 0
   });
   const [aiSuggestion, setAiSuggestion] = useState<AIResponse | null>(null);
-  const [activeView, setActiveView] = useState<'dashboard' | 'profile' | 'simulator' | 'reports'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'profile' | 'simulator' | 'reports' | 'config' | 'history'>('dashboard');
   const [latestPerformanceReport, setLatestPerformanceReport] = useState<PerformanceReport | null>(null);
 
   const handlePerformanceReport = (report: PerformanceReport) => {
@@ -95,6 +97,44 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
     );
   }
 
+  if (activeView === 'history') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50">
+        <DashboardHeader onNavigate={onNavigate} />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-6">
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className="text-pink-600 hover:text-pink-700 font-medium"
+            >
+              ← Back to Dashboard
+            </button>
+          </div>
+          <SessionHistory />
+        </div>
+      </div>
+    );
+  }
+
+  if (activeView === 'config') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50">
+        <DashboardHeader onNavigate={onNavigate} />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-6">
+            <button
+              onClick={() => setActiveView('dashboard')}
+              className="text-pink-600 hover:text-pink-700 font-medium"
+            >
+              ← Back to Dashboard
+            </button>
+          </div>
+          <AIConfigPanel />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50">
       <DashboardHeader onNavigate={onNavigate} />
@@ -119,6 +159,13 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
               <LiveMetrics analytics={analytics} transcript={transcript} />
             )}
 
+            {/* Real-time Coaching */}
+            <RealTimeCoaching 
+              analytics={analytics}
+              transcript={transcript}
+              sessionActive={sessionActive}
+            />
+
             {/* AI Suggestions */}
             <AIAssistant 
               sessionActive={sessionActive}
@@ -130,6 +177,9 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
             {sessionActive && transcript && (
               <TranscriptDisplay transcript={transcript} />
             )}
+
+            {/* Session History */}
+            {!sessionActive && <SessionHistory />}
 
             {/* Recent Sessions */}
             <RecentSessions />
