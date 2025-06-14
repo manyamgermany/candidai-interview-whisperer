@@ -1,15 +1,26 @@
 
 import { StorageSettings, SessionData, AIConfig } from '@/types/storageTypes';
+import { AppErrorClass } from '@/types/errorTypes';
 
 class StorageService {
   private readonly SETTINGS_KEY = 'app_settings';
   private readonly SESSIONS_KEY = 'app_sessions';
 
+  private handleStorageError(operation: string, error: unknown): never {
+    const message = error instanceof Error ? error.message : 'Unknown storage error';
+    throw new AppErrorClass(
+      'STORAGE_ERROR',
+      `Failed to ${operation}: ${message}`,
+      'high',
+      'StorageService'
+    );
+  }
+
   async getSettings(): Promise<StorageSettings> {
     try {
       const stored = localStorage.getItem(this.SETTINGS_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        return JSON.parse(stored) as StorageSettings;
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -46,8 +57,7 @@ class StorageService {
       const updatedSettings = { ...currentSettings, ...settings };
       localStorage.setItem(this.SETTINGS_KEY, JSON.stringify(updatedSettings));
     } catch (error) {
-      console.error('Failed to save settings:', error);
-      throw error;
+      this.handleStorageError('save settings', error);
     }
   }
 
@@ -55,10 +65,17 @@ class StorageService {
     try {
       const stored = localStorage.getItem(this.SESSIONS_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const sessions = JSON.parse(stored) as SessionData[];
+        // Validate session data structure
+        return sessions.filter(session => 
+          session.id && 
+          session.date && 
+          session.analytics && 
+          session.performance
+        );
       }
     } catch (error) {
-      console.error('Failed to load sessions:', error);
+      this.handleStorageError('load sessions', error);
     }
     return [];
   }
@@ -69,8 +86,7 @@ class StorageService {
       const updatedSessions = [session, ...sessions.slice(0, 49)]; // Keep last 50 sessions
       localStorage.setItem(this.SESSIONS_KEY, JSON.stringify(updatedSessions));
     } catch (error) {
-      console.error('Failed to save session:', error);
-      throw error;
+      this.handleStorageError('save session', error);
     }
   }
 
@@ -80,8 +96,7 @@ class StorageService {
       const filteredSessions = sessions.filter(s => s.id !== sessionId);
       localStorage.setItem(this.SESSIONS_KEY, JSON.stringify(filteredSessions));
     } catch (error) {
-      console.error('Failed to delete session:', error);
-      throw error;
+      this.handleStorageError('delete session', error);
     }
   }
 
@@ -90,28 +105,46 @@ class StorageService {
       localStorage.removeItem(this.SETTINGS_KEY);
       localStorage.removeItem(this.SESSIONS_KEY);
     } catch (error) {
-      console.error('Failed to clear data:', error);
-      throw error;
+      this.handleStorageError('clear data', error);
     }
   }
 
-  async setItem(key: string, value: any): Promise<void> {
+  async setItem<T>(key: string, value: T): Promise<void> {
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      console.error('Failed to set item:', error);
-      throw error;
+      this.handleStorageError(`set item ${key}`, error);
     }
   }
 
-  async getItem(key: string): Promise<any> {
+  async getItem<T>(key: string): Promise<T | null> {
     try {
       const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : null;
+      return item ? JSON.parse(item) as T : null;
     } catch (error) {
-      console.error('Failed to get item:', error);
+      console.error(`Failed to get item ${key}:`, error);
       return null;
     }
+  }
+
+  // Cache management
+  private cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+
+  async getCachedItem<T>(key: string, ttl: number = 5 * 60 * 1000): Promise<T | null> {
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < cached.ttl) {
+      return cached.data as T;
+    }
+    
+    const item = await this.getItem<T>(key);
+    if (item) {
+      this.cache.set(key, { data: item, timestamp: Date.now(), ttl });
+    }
+    return item;
+  }
+
+  clearCache(): void {
+    this.cache.clear();
   }
 }
 

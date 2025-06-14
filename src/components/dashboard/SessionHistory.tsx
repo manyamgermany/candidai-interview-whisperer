@@ -1,51 +1,50 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { Calendar, Clock, BarChart3, Search, Filter, Trash2, Download } from "lucide-react";
+import { Calendar, Search, Filter, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ComponentErrorBoundary } from "@/components/ComponentErrorBoundary";
+import { VirtualizedSessionList } from "./VirtualizedSessionList";
+import { useAppStore } from "@/store/useAppStore";
 import { storageService } from "@/services/storageService";
 import { SessionData } from "@/types/storageTypes";
 
 export const SessionHistory = () => {
-  const [sessions, setSessions] = useState<SessionData[]>([]);
-  const [filteredSessions, setFilteredSessions] = useState<SessionData[]>([]);
+  const { sessions, loadSessions, removeSession, setLoading, loading, setError } = useAppStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<"all" | "practice" | "real" | "simulation">("all");
   const [sortBy, setSortBy] = useState<"date" | "duration" | "score">("date");
-  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  const isLoading = loading['sessions'] || false;
+
   useEffect(() => {
-    loadSessions();
+    loadSessionsData();
   }, []);
 
-  useEffect(() => {
-    filterAndSortSessions();
-  }, [sessions, searchTerm, filterType, sortBy]);
-
-  const loadSessions = async () => {
+  const loadSessionsData = useCallback(async () => {
     try {
-      setIsLoading(true);
+      setLoading('sessions', true);
+      setError('sessions', null);
       const sessionData = await storageService.getAllSessions();
-      setSessions(sessionData);
+      loadSessions(sessionData);
     } catch (error) {
       console.error('Failed to load sessions:', error);
+      setError('sessions', 'Failed to load session history');
       toast({
         title: "Loading Error",
         description: "Failed to load session history.",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setLoading('sessions', false);
     }
-  };
+  }, [loadSessions, setLoading, setError, toast]);
 
-  const filterAndSortSessions = () => {
+  const filteredSessions = useMemo(() => {
     let filtered = [...sessions];
 
     // Apply search filter
@@ -75,13 +74,13 @@ export const SessionHistory = () => {
       }
     });
 
-    setFilteredSessions(filtered);
-  };
+    return filtered;
+  }, [sessions, searchTerm, filterType, sortBy]);
 
-  const deleteSession = async (sessionId: string) => {
+  const handleDeleteSession = useCallback(async (sessionId: string) => {
     try {
       await storageService.deleteSession(sessionId);
-      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      removeSession(sessionId);
       toast({
         title: "Session Deleted",
         description: "Session has been removed from history.",
@@ -94,38 +93,23 @@ export const SessionHistory = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [removeSession, toast]);
 
-  const formatDuration = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
+  const handleViewSession = useCallback((sessionId: string) => {
+    // Implementation for viewing session details
+    console.log('Viewing session:', sessionId);
+  }, []);
 
-  const formatDate = (timestamp: number): string => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const getTypeColor = (type: string): string => {
-    switch (type) {
-      case 'practice': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'real': return 'bg-green-100 text-green-700 border-green-200';
-      case 'simulation': return 'bg-purple-100 text-purple-700 border-purple-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
-  };
-
-  const getScoreColor = (score: number): string => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+  const handleExportData = useCallback(() => {
+    const dataStr = JSON.stringify(sessions, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `candidai-sessions-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [sessions]);
 
   if (isLoading) {
     return (
@@ -148,147 +132,95 @@ export const SessionHistory = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header and Controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Session History</h1>
-          <p className="text-gray-600">Review your past interview sessions and performance</p>
-        </div>
-        <Button variant="outline" className="border-pink-200 text-pink-700 hover:bg-pink-50">
-          <Download className="h-4 w-4 mr-2" />
-          Export Data
-        </Button>
-      </div>
-
-      {/* Filters and Search */}
-      <Card className="border-pink-100">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search sessions..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            <Select value={filterType} onValueChange={(value: any) => setFilterType(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="practice">Practice</SelectItem>
-                <SelectItem value="real">Real Interview</SelectItem>
-                <SelectItem value="simulation">Simulation</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="date">Date</SelectItem>
-                <SelectItem value="duration">Duration</SelectItem>
-                <SelectItem value="score">Score</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-600">{filteredSessions.length} sessions</span>
-            </div>
+    <ComponentErrorBoundary componentName="SessionHistory">
+      <div className="space-y-6">
+        {/* Header and Controls */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Session History</h1>
+            <p className="text-gray-600">Review your past interview sessions and performance</p>
           </div>
-        </CardContent>
-      </Card>
+          <Button 
+            variant="outline" 
+            className="border-pink-200 text-pink-700 hover:bg-pink-50"
+            onClick={handleExportData}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export Data
+          </Button>
+        </div>
 
-      {/* Session List */}
-      {filteredSessions.length === 0 ? (
-        <Card className="border-gray-200">
-          <CardContent className="text-center py-12">
-            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No sessions found</h3>
-            <p className="text-gray-600">
-              {searchTerm || filterType !== "all" 
-                ? "Try adjusting your filters or search terms" 
-                : "Start your first interview session to see history here"}
-            </p>
+        {/* Filters and Search */}
+        <Card className="border-pink-100">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search sessions..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              
+              <Select value={filterType} onValueChange={(value: any) => setFilterType(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="practice">Practice</SelectItem>
+                  <SelectItem value="real">Real Interview</SelectItem>
+                  <SelectItem value="simulation">Simulation</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date">Date</SelectItem>
+                  <SelectItem value="duration">Duration</SelectItem>
+                  <SelectItem value="score">Score</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="flex items-center space-x-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-600">{filteredSessions.length} sessions</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      ) : (
-        <div className="space-y-4">
-          {filteredSessions.map((session) => (
-            <Card key={session.id} className="border-gray-200 hover:border-pink-200 transition-colors">
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <Badge className={getTypeColor(session.type)}>
-                        {session.type.charAt(0).toUpperCase() + session.type.slice(1)}
-                      </Badge>
-                      <span className="text-sm text-gray-500 flex items-center">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        {formatDate(session.date)}
-                      </span>
-                      <span className="text-sm text-gray-500 flex items-center">
-                        <Clock className="h-4 w-4 mr-1" />
-                        {formatDuration(session.duration)}
-                      </span>
-                    </div>
-                    
-                    <div className="mb-3">
-                      <div className="flex items-center space-x-3 mb-1">
-                        <span className="text-sm font-medium">Performance Score:</span>
-                        <span className={`font-bold ${getScoreColor(session.performance.score)}`}>
-                          {session.performance.score}%
-                        </span>
-                      </div>
-                      <Progress value={session.performance.score} className="h-2" />
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium text-gray-700">Words per minute:</span>
-                        <span className="ml-2">{session.analytics.wordsPerMinute}</span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">Total words:</span>
-                        <span className="ml-2">{session.analytics.totalWords}</span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">Confidence:</span>
-                        <span className="ml-2">{Math.round(session.analytics.confidenceScore)}%</span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">Filler words:</span>
-                        <span className="ml-2">{session.analytics.fillerWords}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex space-x-2 ml-4">
-                    <Button variant="outline" size="sm">
-                      <BarChart3 className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => deleteSession(session.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
+        {/* Session List */}
+        {filteredSessions.length === 0 ? (
+          <Card className="border-gray-200">
+            <CardContent className="text-center py-12">
+              <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No sessions found</h3>
+              <p className="text-gray-600">
+                {searchTerm || filterType !== "all" 
+                  ? "Try adjusting your filters or search terms" 
+                  : "Start your first interview session to see history here"}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-pink-100">
+            <CardContent className="pt-6">
+              <VirtualizedSessionList
+                sessions={filteredSessions}
+                onDeleteSession={handleDeleteSession}
+                onViewSession={handleViewSession}
+                height={600}
+              />
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </ComponentErrorBoundary>
   );
 };
