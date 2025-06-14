@@ -1,10 +1,14 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { chromeStorage } from "@/utils/chromeStorage";
 import { 
   ArrowLeft, 
   Settings, 
@@ -30,6 +34,7 @@ interface SettingsPanelProps {
 }
 
 const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
+  const { toast } = useToast();
   const [aiProvider, setAiProvider] = useState("openai");
   const [responseStyle, setResponseStyle] = useState("professional");
   const [responseLength, setResponseLength] = useState([3]);
@@ -37,37 +42,105 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
   const [audioFeedback, setAudioFeedback] = useState(false);
   const [confidenceThreshold, setConfidenceThreshold] = useState([75]);
   const [fillerWordSensitivity, setFillerWordSensitivity] = useState([3]);
+  const [desktopNotifications, setDesktopNotifications] = useState(true);
+  const [visualIndicators, setVisualIndicators] = useState(true);
+  const [localDataProcessing, setLocalDataProcessing] = useState(true);
+  const [anonymousAnalytics, setAnonymousAnalytics] = useState(false);
+  const [sessionRecording, setSessionRecording] = useState(true);
+  const [apiKeys, setApiKeys] = useState({
+    openai: '',
+    claude: '',
+    gemini: ''
+  });
 
-  const aiProviders = [
-    { 
-      id: "openai", 
-      name: "OpenAI GPT-4", 
-      status: "connected", 
-      reliability: 98,
-      description: "Most reliable for conversational AI and structured responses"
-    },
-    { 
-      id: "claude", 
-      name: "Anthropic Claude", 
-      status: "available", 
-      reliability: 95,
-      description: "Excellent for analytical and detailed responses"
-    },
-    { 
-      id: "gemini", 
-      name: "Google Gemini", 
-      status: "available", 
-      reliability: 92,
-      description: "Strong multimodal capabilities and reasoning"
+  // Load settings on mount
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const settings = await chromeStorage.getSettings();
+      if (settings) {
+        setAiProvider(settings.aiProvider?.primary || "openai");
+        setResponseStyle(settings.responseStyle?.tone || "professional");
+        setRealTimeAssistance(settings.coaching?.enableRealtime ?? true);
+        setAudioFeedback(settings.audio?.noiseReduction ?? false);
+        // Set other loaded values
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
     }
-  ];
+  };
 
-  const responseStyles = [
-    { id: "professional", name: "Professional", description: "Formal, structured responses" },
-    { id: "conversational", name: "Conversational", description: "Natural, friendly tone" },
-    { id: "technical", name: "Technical", description: "Detailed, technical language" },
-    { id: "concise", name: "Concise", description: "Brief, to-the-point responses" }
-  ];
+  const saveSettings = async () => {
+    try {
+      const settings = {
+        aiProvider: {
+          primary: aiProvider,
+          openaiKey: apiKeys.openai,
+          claudeKey: apiKeys.claude,
+          geminiKey: apiKeys.gemini
+        },
+        responseStyle: {
+          tone: responseStyle,
+          length: responseLength[0] === 1 ? 'brief' : responseLength[0] === 2 ? 'short' : responseLength[0] === 3 ? 'medium' : responseLength[0] === 4 ? 'detailed' : 'comprehensive',
+          formality: 'formal'
+        },
+        audio: {
+          inputDevice: 'default',
+          outputDevice: 'default',
+          noiseReduction: audioFeedback,
+          autoGainControl: true
+        },
+        coaching: {
+          enableRealtime: realTimeAssistance,
+          frameworks: ['star', 'soar'],
+          experienceLevel: 'mid'
+        },
+        analytics: {
+          enableTracking: anonymousAnalytics,
+          trackWPM: true,
+          trackFillers: true,
+          trackConfidence: true
+        }
+      };
+
+      await chromeStorage.saveSettings(settings);
+      toast({
+        title: "Settings Saved",
+        description: "Your preferences have been successfully saved.",
+      });
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save settings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resetToDefaults = () => {
+    setAiProvider("openai");
+    setResponseStyle("professional");
+    setResponseLength([3]);
+    setRealTimeAssistance(true);
+    setAudioFeedback(false);
+    setConfidenceThreshold([75]);
+    setFillerWordSensitivity([3]);
+    setDesktopNotifications(true);
+    setVisualIndicators(true);
+    setLocalDataProcessing(true);
+    setAnonymousAnalytics(false);
+    setSessionRecording(true);
+    setApiKeys({ openai: '', claude: '', gemini: '' });
+    
+    toast({
+      title: "Settings Reset",
+      description: "All settings have been reset to defaults.",
+    });
+  };
 
   const exportSettings = () => {
     const settings = {
@@ -78,6 +151,11 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
       audioFeedback,
       confidenceThreshold: confidenceThreshold[0],
       fillerWordSensitivity: fillerWordSensitivity[0],
+      desktopNotifications,
+      visualIndicators,
+      localDataProcessing,
+      anonymousAnalytics,
+      sessionRecording,
       exportedAt: new Date().toISOString()
     };
     
@@ -90,7 +168,76 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Settings Exported",
+      description: "Settings have been downloaded as JSON file.",
+    });
   };
+
+  const importSettings = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const settings = JSON.parse(e.target?.result as string);
+        
+        // Apply imported settings
+        if (settings.aiProvider) setAiProvider(settings.aiProvider);
+        if (settings.responseStyle) setResponseStyle(settings.responseStyle);
+        if (settings.responseLength !== undefined) setResponseLength([settings.responseLength]);
+        if (settings.realTimeAssistance !== undefined) setRealTimeAssistance(settings.realTimeAssistance);
+        if (settings.audioFeedback !== undefined) setAudioFeedback(settings.audioFeedback);
+        if (settings.confidenceThreshold !== undefined) setConfidenceThreshold([settings.confidenceThreshold]);
+        if (settings.fillerWordSensitivity !== undefined) setFillerWordSensitivity([settings.fillerWordSensitivity]);
+        
+        toast({
+          title: "Settings Imported",
+          description: "Settings have been successfully imported.",
+        });
+      } catch (error) {
+        toast({
+          title: "Import Error",
+          description: "Failed to import settings. Invalid file format.",
+          variant: "destructive",
+        });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const aiProviders = [
+    { 
+      id: "openai", 
+      name: "OpenAI GPT-4", 
+      status: apiKeys.openai ? "connected" : "available", 
+      reliability: 98,
+      description: "Most reliable for conversational AI and structured responses"
+    },
+    { 
+      id: "claude", 
+      name: "Anthropic Claude", 
+      status: apiKeys.claude ? "connected" : "available", 
+      reliability: 95,
+      description: "Excellent for analytical and detailed responses"
+    },
+    { 
+      id: "gemini", 
+      name: "Google Gemini", 
+      status: apiKeys.gemini ? "connected" : "available", 
+      reliability: 92,
+      description: "Strong multimodal capabilities and reasoning"
+    }
+  ];
+
+  const responseStyles = [
+    { id: "professional", name: "Professional", description: "Formal, structured responses" },
+    { id: "conversational", name: "Conversational", description: "Natural, friendly tone" },
+    { id: "technical", name: "Technical", description: "Detailed, technical language" },
+    { id: "concise", name: "Concise", description: "Brief, to-the-point responses" }
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50">
@@ -131,10 +278,17 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
               <Button 
                 variant="outline" 
                 size="sm"
+                onClick={resetToDefaults}
                 className="border-pink-200 text-pink-600 hover:bg-pink-50"
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
                 Reset to Defaults
+              </Button>
+              <Button 
+                onClick={saveSettings}
+                className="bg-pink-600 hover:bg-pink-700 text-white"
+              >
+                Save Settings
               </Button>
             </div>
           </div>
@@ -175,6 +329,22 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                             {provider.name}
                           </label>
                           <p className="text-sm text-gray-500">{provider.description}</p>
+                          <div className="mt-2">
+                            <Label htmlFor={`${provider.id}-key`} className="text-xs text-gray-500">
+                              API Key
+                            </Label>
+                            <Input
+                              id={`${provider.id}-key`}
+                              type="password"
+                              placeholder="Enter API key..."
+                              value={apiKeys[provider.id as keyof typeof apiKeys]}
+                              onChange={(e) => setApiKeys(prev => ({
+                                ...prev,
+                                [provider.id]: e.target.value
+                              }))}
+                              className="mt-1 text-xs"
+                            />
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center space-x-3">
@@ -344,21 +514,30 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                     <h4 className="font-medium text-gray-900">Local Data Processing</h4>
                     <p className="text-sm text-gray-500">Process speech analysis locally when possible</p>
                   </div>
-                  <Switch checked={true} />
+                  <Switch 
+                    checked={localDataProcessing} 
+                    onCheckedChange={setLocalDataProcessing}
+                  />
                 </div>
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
                     <h4 className="font-medium text-gray-900">Anonymous Analytics</h4>
                     <p className="text-sm text-gray-500">Share anonymous usage data to improve the service</p>
                   </div>
-                  <Switch checked={false} />
+                  <Switch 
+                    checked={anonymousAnalytics} 
+                    onCheckedChange={setAnonymousAnalytics}
+                  />
                 </div>
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
                     <h4 className="font-medium text-gray-900">Session Recording</h4>
                     <p className="text-sm text-gray-500">Allow temporary session recording for analysis</p>
                   </div>
-                  <Switch checked={true} />
+                  <Switch 
+                    checked={sessionRecording} 
+                    onCheckedChange={setSessionRecording}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -397,14 +576,20 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                     <Bell className="h-4 w-4 text-pink-600" />
                     <span className="text-sm font-medium">Desktop Notifications</span>
                   </div>
-                  <Switch checked={true} />
+                  <Switch 
+                    checked={desktopNotifications} 
+                    onCheckedChange={setDesktopNotifications}
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <Eye className="h-4 w-4 text-pink-600" />
                     <span className="text-sm font-medium">Visual Indicators</span>
                   </div>
-                  <Switch checked={true} />
+                  <Switch 
+                    checked={visualIndicators} 
+                    onCheckedChange={setVisualIndicators}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -421,11 +606,11 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <div className={`w-2 h-2 rounded-full ${apiKeys.openai ? 'bg-green-500' : 'bg-gray-400'}`}></div>
                       <span className="text-sm">OpenAI API</span>
                     </div>
-                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 text-xs">
-                      Active
+                    <Badge variant="secondary" className={`${apiKeys.openai ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-700 border-gray-200'} text-xs`}>
+                      {apiKeys.openai ? 'Active' : 'Inactive'}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
@@ -456,16 +641,30 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                 <CardTitle className="text-lg">Advanced</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                <div>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={importSettings}
+                    style={{ display: 'none' }}
+                    id="import-settings"
+                  />
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start border-pink-200 text-pink-600 hover:bg-pink-50"
+                    onClick={() => document.getElementById('import-settings')?.click()}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import Settings
+                  </Button>
+                </div>
                 <Button 
                   variant="outline" 
                   className="w-full justify-start border-pink-200 text-pink-600 hover:bg-pink-50"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import Settings
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start border-pink-200 text-pink-600 hover:bg-pink-50"
+                  onClick={() => toast({
+                    title: "API Keys",
+                    description: "Use the API key fields in the AI Provider section above.",
+                  })}
                 >
                   <Key className="h-4 w-4 mr-2" />
                   API Keys
@@ -473,6 +672,10 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                 <Button 
                   variant="outline" 
                   className="w-full justify-start border-pink-200 text-pink-600 hover:bg-pink-50"
+                  onClick={() => toast({
+                    title: "Theme Settings",
+                    description: "Theme customization coming soon!",
+                  })}
                 >
                   <Palette className="h-4 w-4 mr-2" />
                   Theme Settings
@@ -498,6 +701,10 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                 <Button 
                   variant="outline" 
                   className="w-full border-pink-200 text-pink-600 hover:bg-pink-50"
+                  onClick={() => toast({
+                    title: "Support",
+                    description: "Contact support feature coming soon!",
+                  })}
                 >
                   Contact Support
                 </Button>
