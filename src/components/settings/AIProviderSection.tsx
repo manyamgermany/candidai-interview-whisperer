@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,10 +29,9 @@ import {
 interface AIProviderSectionProps {
   settings: any;
   onSettingsChange: (settings: any) => void;
-  searchQuery: string;
 }
 
-export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: AIProviderSectionProps) => {
+export const AIProviderSection = ({ settings, onSettingsChange }: AIProviderSectionProps) => {
   const { toast } = useToast();
   const [testingConnections, setTestingConnections] = useState<Record<string, boolean>>({});
   const [connectionStatus, setConnectionStatus] = useState<Record<string, 'untested' | 'connected' | 'failed' | 'testing'>>({
@@ -369,11 +367,6 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
     }
   };
 
-  const shouldHighlight = (text: string) => {
-    if (!searchQuery) return false;
-    return text.toLowerCase().includes(searchQuery.toLowerCase());
-  };
-
   const currentProvider = aiProviders.find(p => p.id === settings.aiProvider?.primary);
   const configuredProviders = aiProviders.filter(p => settings.aiProvider[`${p.id}Key`]);
 
@@ -447,9 +440,7 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Brain className="h-5 w-5 text-pink-600" />
-            <span className={shouldHighlight("Configure AI Providers") ? "bg-yellow-200" : ""}>
-              Configure AI Providers
-            </span>
+            <span>Configure AI Providers</span>
           </CardTitle>
           <CardDescription>
             Set up your AI providers one by one. Each provider offers different capabilities and pricing.

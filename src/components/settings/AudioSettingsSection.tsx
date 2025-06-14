@@ -9,15 +9,9 @@ import { Mic, Volume2, Settings as SettingsIcon } from "lucide-react";
 interface AudioSettingsSectionProps {
   settings: any;
   onSettingsChange: (settings: any) => void;
-  searchQuery: string;
 }
 
-export const AudioSettingsSection = ({ settings, onSettingsChange, searchQuery }: AudioSettingsSectionProps) => {
-  const shouldHighlight = (text: string) => {
-    if (!searchQuery) return false;
-    return text.toLowerCase().includes(searchQuery.toLowerCase());
-  };
-
+export const AudioSettingsSection = ({ settings, onSettingsChange }: AudioSettingsSectionProps) => {
   const updateSetting = (path: string[], value: any) => {
     const newSettings = { ...settings };
     let current = newSettings;
@@ -38,9 +32,7 @@ export const AudioSettingsSection = ({ settings, onSettingsChange, searchQuery }
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Mic className="h-5 w-5 text-pink-600" />
-            <span className={shouldHighlight("Audio & Speech Analysis") ? "bg-yellow-200" : ""}>
-              Audio & Speech Analysis
-            </span>
+            <span>Audio & Speech Analysis</span>
           </CardTitle>
           <CardDescription>
             Configure speech recognition and feedback settings for optimal performance
@@ -49,7 +41,7 @@ export const AudioSettingsSection = ({ settings, onSettingsChange, searchQuery }
         <CardContent className="space-y-6">
           {/* Confidence Threshold */}
           <div>
-            <Label className={`text-sm font-medium text-gray-900 mb-3 block ${shouldHighlight("confidence") ? "bg-yellow-200" : ""}`}>
+            <Label className="text-sm font-medium text-gray-900 mb-3 block">
               Confidence Threshold: {confidenceThreshold}%
             </Label>
             <div className="space-y-3">
@@ -75,7 +67,7 @@ export const AudioSettingsSection = ({ settings, onSettingsChange, searchQuery }
 
           {/* Filler Word Sensitivity */}
           <div>
-            <Label className={`text-sm font-medium text-gray-900 mb-3 block ${shouldHighlight("filler") ? "bg-yellow-200" : ""}`}>
+            <Label className="text-sm font-medium text-gray-900 mb-3 block">
               Filler Word Sensitivity: {['Very Low', 'Low', 'Medium', 'High', 'Very High'][fillerSensitivity - 1]}
             </Label>
             <div className="space-y-3">
@@ -126,9 +118,7 @@ export const AudioSettingsSection = ({ settings, onSettingsChange, searchQuery }
             
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div>
-                <h5 className={`font-medium text-gray-900 ${shouldHighlight("real-time") ? "bg-yellow-200" : ""}`}>
-                  Real-time Processing
-                </h5>
+                <h5 className="font-medium text-gray-900">Real-time Processing</h5>
                 <p className="text-sm text-gray-500">Process speech in real-time for immediate feedback</p>
               </div>
               <Switch 

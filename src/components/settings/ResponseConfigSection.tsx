@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -10,10 +9,9 @@ import { Globe, Eye, RefreshCw, Lightbulb } from "lucide-react";
 interface ResponseConfigSectionProps {
   settings: any;
   onSettingsChange: (settings: any) => void;
-  searchQuery: string;
 }
 
-export const ResponseConfigSection = ({ settings, onSettingsChange, searchQuery }: ResponseConfigSectionProps) => {
+export const ResponseConfigSection = ({ settings, onSettingsChange }: ResponseConfigSectionProps) => {
   const [previewMode, setPreviewMode] = useState(false);
   const [sampleResponse, setSampleResponse] = useState("");
 
@@ -52,11 +50,6 @@ export const ResponseConfigSection = ({ settings, onSettingsChange, searchQuery 
     "2-3 paragraphs, thorough analysis",
     "Multiple paragraphs, comprehensive insights"
   ];
-
-  const shouldHighlight = (text: string) => {
-    if (!searchQuery) return false;
-    return text.toLowerCase().includes(searchQuery.toLowerCase());
-  };
 
   const updateResponseStyle = (styleId: string) => {
     const newSettings = {
@@ -118,9 +111,7 @@ export const ResponseConfigSection = ({ settings, onSettingsChange, searchQuery 
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Globe className="h-5 w-5 text-pink-600" />
-            <span className={shouldHighlight("Response Configuration") ? "bg-yellow-200" : ""}>
-              Response Configuration
-            </span>
+            <span>Response Configuration</span>
           </CardTitle>
           <CardDescription>
             Customize how AI provides suggestions and feedback with live preview
@@ -129,7 +120,7 @@ export const ResponseConfigSection = ({ settings, onSettingsChange, searchQuery 
         <CardContent className="space-y-6">
           {/* Response Style Selection */}
           <div>
-            <label className={`text-sm font-medium text-gray-900 mb-3 block ${shouldHighlight("Response Style") ? "bg-yellow-200" : ""}`}>
+            <label className="text-sm font-medium text-gray-900 mb-3 block">
               Response Style
             </label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -178,7 +169,7 @@ export const ResponseConfigSection = ({ settings, onSettingsChange, searchQuery 
 
           {/* Response Length Slider */}
           <div>
-            <label className={`text-sm font-medium text-gray-900 mb-3 block ${shouldHighlight("Response Length") ? "bg-yellow-200" : ""}`}>
+            <label className="text-sm font-medium text-gray-900 mb-3 block">
               Response Length: <span className="text-pink-600 font-semibold">
                 {lengthLabels[getCurrentLengthIndex() - 1]}
               </span>
