@@ -308,16 +308,25 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center space-x-4">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => onNavigate("dashboard")}
-                  className="text-gray-600 hover:text-pink-600"
-                  aria-label="Back to Dashboard"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => onNavigate("dashboard")}
+                        className="text-gray-600 hover:text-pink-600"
+                        aria-label="Back to Dashboard"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Back to Dashboard</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-gradient-to-br from-pink-400 to-rose-500 rounded-full flex items-center justify-center">
                     <Settings className="h-5 w-5 text-white" />
@@ -329,7 +338,7 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                 </div>
               </div>
               
-              {/* Simplified Actions */}
+              {/* Actions - Only Icons with Hover Tooltips */}
               <TooltipProvider>
                 <div className="flex items-center space-x-2">
                   {/* Search */}
@@ -339,7 +348,7 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                     onNavigate={handleSearchNavigation}
                   />
                   
-                  {/* Action Buttons */}
+                  {/* Action Buttons - Icons Only */}
                   <div className="flex items-center space-x-1 border-l border-gray-200 pl-3">
                     <ConfigTemplates onApplyTemplate={saveSettings} />
                     
@@ -349,7 +358,7 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                           variant="ghost" 
                           size="sm"
                           onClick={() => setShowWizard(true)}
-                          className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0 text-gray-600 hover:text-pink-600"
                         >
                           <Settings className="h-4 w-4" />
                         </Button>
@@ -372,7 +381,7 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                           variant="ghost" 
                           size="sm"
                           onClick={() => document.getElementById('import-settings')?.click()}
-                          className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0 text-gray-600 hover:text-pink-600"
                         >
                           <Upload className="h-4 w-4" />
                         </Button>
@@ -388,7 +397,7 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
                           variant="ghost" 
                           size="sm"
                           onClick={exportSettings}
-                          className="h-8 w-8 p-0"
+                          className="h-8 w-8 p-0 text-gray-600 hover:text-pink-600"
                         >
                           <Download className="h-4 w-4" />
                         </Button>
