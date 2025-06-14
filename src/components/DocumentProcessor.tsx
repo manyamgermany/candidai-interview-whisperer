@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,11 +81,23 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
 
   const handleFiles = async (files: FileList) => {
     for (const file of Array.from(files)) {
-      // Validate file type and size
-      if (!file.type.includes('pdf') && !file.name.endsWith('.txt')) {
+      // Validate file type - support PDF, TXT, DOCX, MD files
+      const supportedTypes = [
+        'application/pdf',
+        'text/plain',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/markdown'
+      ];
+      
+      const supportedExtensions = ['.pdf', '.txt', '.docx', '.md'];
+      
+      const isValidType = supportedTypes.includes(file.type) || 
+                         supportedExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+
+      if (!isValidType) {
         toast({
           title: "Unsupported File Type",
-          description: "Please upload PDF or TXT files only.",
+          description: "Please upload PDF, TXT, DOCX, or MD files only.",
           variant: "destructive",
         });
         continue;
@@ -104,7 +117,7 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
         const processingDoc: ProcessedDocument = {
           id: Math.random().toString(36).substr(2, 9),
           name: file.name,
-          type: file.type,
+          type: file.type || 'application/octet-stream',
           size: file.size,
           status: 'processing',
           uploadedAt: Date.now()
@@ -134,6 +147,9 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
         }
       } catch (error) {
         console.error('File processing error:', error);
+        setUploadedFiles(prev => 
+          prev.map(doc => doc.id === processingDoc.id ? { ...doc, status: 'error' as const } : doc)
+        );
         toast({
           title: "Processing Error",
           description: `Error processing ${file.name}.`,
@@ -206,7 +222,10 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
               <Button 
                 variant="ghost" 
                 size="sm"
-                onClick={() => onNavigate("dashboard")}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onNavigate("dashboard");
+                }}
                 className="text-gray-600 hover:text-pink-600"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -266,7 +285,7 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
                     Drop your resume here, or click to browse
                   </p>
                   <p className="text-xs text-gray-500 mb-4">
-                    Supports PDF, TXT files up to 10MB
+                    Supports PDF, TXT, DOCX, MD files up to 10MB
                   </p>
                   <Button
                     onClick={() => fileInputRef.current?.click()}
@@ -277,7 +296,7 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".pdf,.txt"
+                    accept=".pdf,.txt,.docx,.md"
                     onChange={(e) => e.target.files && handleFiles(e.target.files)}
                     className="hidden"
                   />
