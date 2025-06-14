@@ -21,7 +21,10 @@ import {
   Zap,
   RefreshCw,
   Eye,
-  EyeOff
+  EyeOff,
+  Star,
+  Wifi,
+  WifiOff
 } from "lucide-react";
 
 interface AIProviderSectionProps {
@@ -41,12 +44,14 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
   const [testProgress, setTestProgress] = useState<Record<string, number>>({});
   const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({});
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [testErrors, setTestErrors] = useState<Record<string, string>>({});
 
   const aiProviders = [
     { 
       id: "openai", 
       name: "OpenAI", 
       description: "Most reliable for conversational AI and structured responses",
+      icon: "🤖",
       reliability: 98,
       avgResponseTime: "1.2s",
       costRating: 3,
@@ -57,7 +62,8 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
           description: 'Fast and efficient - $0.15/1M tokens',
           speed: 95,
           cost: 1,
-          capability: 85
+          capability: 85,
+          recommended: true
         },
         { 
           id: 'gpt-4o', 
@@ -81,6 +87,7 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
       id: "claude", 
       name: "Anthropic Claude", 
       description: "Excellent for analytical and detailed responses",
+      icon: "🧠",
       reliability: 95,
       avgResponseTime: "1.8s",
       costRating: 4,
@@ -99,7 +106,8 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
           description: 'Balanced performance - $3.00/1M tokens',
           speed: 75,
           cost: 3,
-          capability: 90
+          capability: 90,
+          recommended: true
         },
         { 
           id: 'claude-3-opus-20240229', 
@@ -115,6 +123,7 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
       id: "gemini", 
       name: "Google Gemini", 
       description: "Strong multimodal capabilities and reasoning",
+      icon: "✨",
       reliability: 92,
       avgResponseTime: "2.1s",
       costRating: 2,
@@ -125,7 +134,8 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
           description: 'Optimized for text - $0.50/1M tokens',
           speed: 85,
           cost: 2,
-          capability: 88
+          capability: 88,
+          recommended: true
         },
         { 
           id: 'gemini-pro-vision', 
@@ -140,34 +150,41 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
   ];
 
   const validateApiKey = (provider: string, key: string) => {
-    const errors: Record<string, string> = {};
-    
     if (!key.trim()) {
-      errors[provider] = "API key is required";
-      return errors;
+      return "API key is required";
     }
 
     switch (provider) {
       case 'openai':
         if (!key.startsWith('sk-')) {
-          errors[provider] = "OpenAI API keys should start with 'sk-'";
-        } else if (key.length < 45) {
-          errors[provider] = "OpenAI API key appears to be too short";
+          return "OpenAI API keys must start with 'sk-'";
+        } 
+        if (key.length < 45) {
+          return "OpenAI API key is too short (should be ~51 characters)";
+        }
+        if (key.length > 60) {
+          return "OpenAI API key is too long";
         }
         break;
       case 'claude':
         if (!key.startsWith('sk-ant-')) {
-          errors[provider] = "Claude API keys should start with 'sk-ant-'";
+          return "Claude API keys must start with 'sk-ant-'";
+        }
+        if (key.length < 40) {
+          return "Claude API key appears to be too short";
         }
         break;
       case 'gemini':
         if (key.length < 35) {
-          errors[provider] = "Gemini API key appears to be too short";
+          return "Gemini API key appears to be too short";
+        }
+        if (!/^[A-Za-z0-9_-]+$/.test(key)) {
+          return "Gemini API key contains invalid characters";
         }
         break;
     }
     
-    return errors;
+    return null;
   };
 
   const updateApiKey = (provider: string, key: string) => {
@@ -179,21 +196,24 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
       }
     };
     
-    // Validate the key
-    const errors = validateApiKey(provider, key);
-    setValidationErrors(prev => ({
-      ...prev,
-      ...errors
-    }));
-    
-    // Clear validation error if key is valid
-    if (!errors[provider] && validationErrors[provider]) {
-      setValidationErrors(prev => {
-        const updated = { ...prev };
+    // Real-time validation
+    const error = validateApiKey(provider, key);
+    setValidationErrors(prev => {
+      const updated = { ...prev };
+      if (error) {
+        updated[provider] = error;
+      } else {
         delete updated[provider];
-        return updated;
-      });
-    }
+      }
+      return updated;
+    });
+    
+    // Clear test errors when key changes
+    setTestErrors(prev => {
+      const updated = { ...prev };
+      delete updated[provider];
+      return updated;
+    });
     
     onSettingsChange(newSettings);
   };
@@ -202,11 +222,11 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
     const apiKey = settings.aiProvider[`${provider}Key`];
     
     // Validate before testing
-    const errors = validateApiKey(provider, apiKey);
-    if (errors[provider]) {
+    const validationError = validateApiKey(provider, apiKey);
+    if (validationError) {
       toast({
         title: "Invalid API Key",
-        description: errors[provider],
+        description: validationError,
         variant: "destructive",
       });
       return;
@@ -215,15 +235,20 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
     setTestingConnections(prev => ({ ...prev, [provider]: true }));
     setConnectionStatus(prev => ({ ...prev, [provider]: 'testing' }));
     setTestProgress(prev => ({ ...prev, [provider]: 0 }));
+    setTestErrors(prev => {
+      const updated = { ...prev };
+      delete updated[provider];
+      return updated;
+    });
     
     try {
-      // Simulate progress
+      // Simulate progress with more granular updates
       const progressInterval = setInterval(() => {
         setTestProgress(prev => ({
           ...prev,
-          [provider]: Math.min((prev[provider] || 0) + 20, 90)
+          [provider]: Math.min((prev[provider] || 0) + 15, 85)
         }));
-      }, 300);
+      }, 200);
 
       // Configure the provider temporarily for testing
       await aiService.configure(
@@ -243,20 +268,45 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
           [provider]: isWorking ? 'connected' : 'failed'
         }));
         
-        toast({
-          title: isWorking ? "Connection Successful" : "Connection Failed",
-          description: isWorking 
-            ? `Successfully connected to ${provider}` 
-            : `Failed to connect to ${provider}. Please check your API key.`,
-          variant: isWorking ? "default" : "destructive",
-        });
+        if (isWorking) {
+          toast({
+            title: "✅ Connection Successful",
+            description: `${aiProviders.find(p => p.id === provider)?.name} is ready to use`,
+          });
+        } else {
+          const errorMsg = "Connection test failed. Please verify your API key and try again.";
+          setTestErrors(prev => ({ ...prev, [provider]: errorMsg }));
+          toast({
+            title: "❌ Connection Failed",
+            description: errorMsg,
+            variant: "destructive",
+          });
+        }
       }, 500);
       
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      let specificError = errorMessage;
+      
+      // Provide specific error messages based on common issues
+      if (errorMessage.includes('401') || errorMessage.includes('unauthorized')) {
+        specificError = "Invalid API key. Please check your key and try again.";
+      } else if (errorMessage.includes('403') || errorMessage.includes('forbidden')) {
+        specificError = "API key doesn't have required permissions.";
+      } else if (errorMessage.includes('429') || errorMessage.includes('rate limit')) {
+        specificError = "Rate limit exceeded. Please wait and try again.";
+      } else if (errorMessage.includes('timeout') || errorMessage.includes('network')) {
+        specificError = "Network timeout. Please check your connection and try again.";
+      } else if (errorMessage.includes('quota')) {
+        specificError = "API quota exceeded. Please check your billing status.";
+      }
+      
       setConnectionStatus(prev => ({ ...prev, [provider]: 'failed' }));
+      setTestErrors(prev => ({ ...prev, [provider]: specificError }));
+      
       toast({
-        title: "Connection Failed",
-        description: `Error testing ${provider}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        title: "❌ Connection Failed",
+        description: specificError,
         variant: "destructive",
       });
     } finally {
@@ -269,13 +319,13 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
 
   const testAllConnections = async () => {
     const providersWithKeys = aiProviders.filter(provider => 
-      settings.aiProvider[`${provider.id}Key`]
+      settings.aiProvider[`${provider.id}Key`] && !validateApiKey(provider.id, settings.aiProvider[`${provider.id}Key`])
     );
     
     if (providersWithKeys.length === 0) {
       toast({
-        title: "No API Keys",
-        description: "Please add at least one API key before testing connections.",
+        title: "No Valid API Keys",
+        description: "Please add and validate at least one API key before testing connections.",
         variant: "destructive",
       });
       return;
@@ -299,8 +349,8 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'connected': return <CheckCircle className="h-3 w-3 mr-1" />;
-      case 'failed': return <AlertCircle className="h-3 w-3 mr-1" />;
+      case 'connected': return <Wifi className="h-3 w-3 mr-1" />;
+      case 'failed': return <WifiOff className="h-3 w-3 mr-1" />;
       case 'testing': return <Loader2 className="h-3 w-3 mr-1 animate-spin" />;
       default: return <Key className="h-3 w-3 mr-1" />;
     }
@@ -311,262 +361,325 @@ export const AIProviderSection = ({ settings, onSettingsChange, searchQuery }: A
     return text.toLowerCase().includes(searchQuery.toLowerCase());
   };
 
+  const currentProvider = aiProviders.find(p => p.id === settings.aiProvider?.primary);
+  const configuredProviders = aiProviders.filter(p => settings.aiProvider[`${p.id}Key`]);
+
   return (
     <div className="space-y-6">
-      {/* Header with bulk actions */}
-      <Card className="border-pink-100">
-        <CardHeader>
+      {/* Current Active Provider - Prominent Display */}
+      <Card className="border-pink-200 bg-gradient-to-r from-pink-50 to-rose-50">
+        <CardContent className="pt-6">
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center space-x-2">
-                <Brain className="h-5 w-5 text-pink-600" />
-                <span className={shouldHighlight("AI Provider Configuration") ? "bg-yellow-200" : ""}>
-                  AI Provider Configuration
-                </span>
-              </CardTitle>
-              <CardDescription>
-                Configure your AI assistants with enhanced testing and validation
-              </CardDescription>
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center text-2xl">
+                {currentProvider?.icon || '🤖'}
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg font-semibold text-gray-900">
+                    {currentProvider?.name || 'No Provider Selected'}
+                  </span>
+                  {currentProvider && (
+                    <Badge className="bg-pink-100 text-pink-700 border-pink-200">
+                      <Star className="h-3 w-3 mr-1" />
+                      Primary
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600 mt-1">
+                  {currentProvider?.description || 'Please select and configure a primary AI provider'}
+                </p>
+                {currentProvider && (
+                  <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                    <span>Model: {settings.aiProvider?.models?.[currentProvider.id] || 'Not selected'}</span>
+                    <span>•</span>
+                    <span>Reliability: {currentProvider.reliability}%</span>
+                    <span>•</span>
+                    <span>Avg Response: {currentProvider.avgResponseTime}</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
+            
+            <div className="flex items-center space-x-3">
+              {currentProvider && (
+                <Badge className={getStatusColor(connectionStatus[currentProvider.id])}>
+                  {getStatusIcon(connectionStatus[currentProvider.id])}
+                  {connectionStatus[currentProvider.id] === 'connected' ? 'Active' :
+                   connectionStatus[currentProvider.id] === 'failed' ? 'Failed' :
+                   connectionStatus[currentProvider.id] === 'testing' ? 'Testing' : 'Not Tested'}
+                </Badge>
+              )}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={testAllConnections}
-                className="border-pink-200 text-pink-600 hover:bg-pink-50"
                 disabled={Object.values(testingConnections).some(testing => testing)}
+                className="border-pink-200 text-pink-600 hover:bg-pink-50"
               >
-                <TestTube className="h-4 w-4 mr-2" />
-                Test All Connections
+                {Object.values(testingConnections).some(testing => testing) ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <TestTube className="h-4 w-4 mr-2" />
+                )}
+                Test All
               </Button>
             </div>
-          </div>
-        </CardHeader>
-      </Card>
-
-      {/* Current Primary Provider Indicator */}
-      <Card className="border-pink-100 bg-pink-50">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-3 h-3 bg-pink-600 rounded-full"></div>
-              <span className="font-medium">Primary Provider:</span>
-              <span className="text-pink-600 font-semibold">
-                {aiProviders.find(p => p.id === settings.aiProvider?.primary)?.name || 'Not Selected'}
-              </span>
-            </div>
-            <Badge className="bg-pink-100 text-pink-700 border-pink-200">
-              Active
-            </Badge>
           </div>
         </CardContent>
       </Card>
 
-      {/* Provider Configuration Cards */}
+      {/* Provider Configuration - One at a time for clarity */}
+      <Card className="border-pink-100">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Brain className="h-5 w-5 text-pink-600" />
+            <span className={shouldHighlight("Configure AI Providers") ? "bg-yellow-200" : ""}>
+              Configure AI Providers
+            </span>
+          </CardTitle>
+          <CardDescription>
+            Set up your AI providers one by one. Each provider offers different capabilities and pricing.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      {/* Provider Selection and Configuration */}
       <div className="space-y-4">
         {aiProviders.map((provider) => (
-          <Card key={provider.id} className="border-pink-100 overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-pink-100">
-              <div className="flex items-center space-x-3">
-                <input
-                  type="radio"
-                  id={provider.id}
-                  name="aiProvider"
-                  value={provider.id}
-                  checked={settings.aiProvider?.primary === provider.id}
-                  onChange={(e) => onSettingsChange({
-                    ...settings,
-                    aiProvider: {
-                      ...settings.aiProvider,
-                      primary: e.target.value
-                    }
-                  })}
-                  className="w-4 h-4 text-pink-600 focus:ring-pink-500"
-                  aria-describedby={`${provider.id}-description`}
-                />
-                <div className="flex-1">
-                  <label htmlFor={provider.id} className="font-medium text-gray-900 cursor-pointer">
-                    {provider.name}
-                  </label>
-                  <p id={`${provider.id}-description`} className="text-sm text-gray-500">
-                    {provider.description}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Provider Stats */}
-              <div className="flex items-center space-x-6 text-sm">
-                <div className="text-center">
-                  <div className="font-medium">{provider.reliability}%</div>
-                  <div className="text-gray-500 text-xs">Reliability</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-medium flex items-center">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {provider.avgResponseTime}
+          <Card 
+            key={provider.id} 
+            className={`border-pink-100 ${
+              settings.aiProvider?.primary === provider.id ? 'ring-2 ring-pink-200 bg-pink-50/30' : ''
+            }`}
+          >
+            <div className="p-4">
+              {/* Provider Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="radio"
+                    id={provider.id}
+                    name="aiProvider"
+                    value={provider.id}
+                    checked={settings.aiProvider?.primary === provider.id}
+                    onChange={(e) => onSettingsChange({
+                      ...settings,
+                      aiProvider: {
+                        ...settings.aiProvider,
+                        primary: e.target.value
+                      }
+                    })}
+                    className="w-4 h-4 text-pink-600 focus:ring-pink-500"
+                  />
+                  <div className="text-2xl">{provider.icon}</div>
+                  <div>
+                    <label htmlFor={provider.id} className="font-medium text-gray-900 cursor-pointer flex items-center space-x-2">
+                      <span>{provider.name}</span>
+                      {settings.aiProvider?.primary === provider.id && (
+                        <Badge className="bg-pink-100 text-pink-700 border-pink-200 text-xs">
+                          Primary
+                        </Badge>
+                      )}
+                    </label>
+                    <p className="text-sm text-gray-500">{provider.description}</p>
                   </div>
-                  <div className="text-gray-500 text-xs">Response Time</div>
-                </div>
-                <div className="text-center">
-                  <div className="font-medium flex items-center">
-                    <DollarSign className="h-3 w-3 mr-1" />
-                    {'$'.repeat(provider.costRating)}
-                  </div>
-                  <div className="text-gray-500 text-xs">Cost Level</div>
-                </div>
-                <Badge className={getStatusColor(connectionStatus[provider.id])}>
-                  {getStatusIcon(connectionStatus[provider.id])}
-                  {connectionStatus[provider.id] === 'connected' ? 'Connected' :
-                   connectionStatus[provider.id] === 'failed' ? 'Failed' :
-                   connectionStatus[provider.id] === 'testing' ? 'Testing' : 'Inactive'}
-                </Badge>
-              </div>
-            </div>
-            
-            <div className="p-4 space-y-4 bg-gray-50">
-              {/* API Key Input */}
-              <div>
-                <Label htmlFor={`${provider.id}-key`} className="text-sm text-gray-700 font-medium">
-                  API Key
-                  {validationErrors[provider.id] && (
-                    <span className="text-red-500 ml-2 text-xs">⚠ {validationErrors[provider.id]}</span>
-                  )}
-                </Label>
-                <div className="flex space-x-2 mt-1">
-                  <div className="relative flex-1">
-                    <Input
-                      id={`${provider.id}-key`}
-                      type={showApiKeys[provider.id] ? "text" : "password"}
-                      placeholder="Enter API key..."
-                      value={settings.aiProvider[`${provider.id}Key`] || ''}
-                      onChange={(e) => updateApiKey(provider.id, e.target.value)}
-                      className={`pr-10 ${validationErrors[provider.id] ? 'border-red-300 focus:border-red-500' : ''}`}
-                      aria-describedby={validationErrors[provider.id] ? `${provider.id}-error` : undefined}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowApiKeys(prev => ({
-                        ...prev,
-                        [provider.id]: !prev[provider.id]
-                      }))}
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-                      aria-label={showApiKeys[provider.id] ? "Hide API key" : "Show API key"}
-                    >
-                      {showApiKeys[provider.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                    </Button>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => testConnection(provider.id)}
-                    disabled={testingConnections[provider.id] || !settings.aiProvider[`${provider.id}Key`] || !!validationErrors[provider.id]}
-                    className="border-pink-200 text-pink-600 hover:bg-pink-50 min-w-[80px]"
-                    aria-label={`Test ${provider.name} connection`}
-                  >
-                    {testingConnections[provider.id] ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <TestTube className="h-4 w-4" />
-                    )}
-                  </Button>
                 </div>
                 
-                {/* Progress bar for testing */}
-                {testingConnections[provider.id] && (
-                  <div className="mt-2">
-                    <Progress value={testProgress[provider.id] || 0} className="h-2" />
-                    <p className="text-xs text-gray-500 mt-1">Testing connection...</p>
-                  </div>
-                )}
+                {/* Provider Stats */}
+                <div className="flex items-center space-x-6">
+                  <Badge className={getStatusColor(connectionStatus[provider.id])}>
+                    {getStatusIcon(connectionStatus[provider.id])}
+                    {connectionStatus[provider.id] === 'connected' ? 'Connected' :
+                     connectionStatus[provider.id] === 'failed' ? 'Failed' :
+                     connectionStatus[provider.id] === 'testing' ? 'Testing' : 'Not Configured'}
+                  </Badge>
+                </div>
               </div>
               
-              {/* Model Selection */}
-              <div>
-                <Label htmlFor={`${provider.id}-model`} className="text-sm text-gray-700 font-medium">
-                  Model Selection
-                </Label>
-                <Select
-                  value={settings.aiProvider?.models?.[provider.id] || provider.models[0].id}
-                  onValueChange={(value) => onSettingsChange({
-                    ...settings,
-                    aiProvider: {
-                      ...settings.aiProvider,
-                      models: {
-                        ...settings.aiProvider.models,
-                        [provider.id]: value
+              {/* Configuration Section */}
+              <div className="space-y-4 pl-7">
+                {/* API Key Input */}
+                <div>
+                  <Label htmlFor={`${provider.id}-key`} className="text-sm font-medium text-gray-700">
+                    API Key *
+                  </Label>
+                  <div className="flex space-x-2 mt-1">
+                    <div className="relative flex-1">
+                      <Input
+                        id={`${provider.id}-key`}
+                        type={showApiKeys[provider.id] ? "text" : "password"}
+                        placeholder={`Enter your ${provider.name} API key...`}
+                        value={settings.aiProvider[`${provider.id}Key`] || ''}
+                        onChange={(e) => updateApiKey(provider.id, e.target.value)}
+                        className={`pr-10 ${
+                          validationErrors[provider.id] 
+                            ? 'border-red-300 focus:border-red-500' 
+                            : settings.aiProvider[`${provider.id}Key`] && !validationErrors[provider.id]
+                            ? 'border-green-300 focus:border-green-500'
+                            : ''
+                        }`}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowApiKeys(prev => ({
+                          ...prev,
+                          [provider.id]: !prev[provider.id]
+                        }))}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                      >
+                        {showApiKeys[provider.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                      </Button>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => testConnection(provider.id)}
+                      disabled={
+                        testingConnections[provider.id] || 
+                        !settings.aiProvider[`${provider.id}Key`] || 
+                        !!validationErrors[provider.id]
                       }
-                    }
-                  })}
-                >
-                  <SelectTrigger className="mt-1" id={`${provider.id}-model`}>
-                    <SelectValue placeholder="Select model..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {provider.models.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
-                        <div className="w-full">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-medium">{model.name}</span>
-                            <div className="flex items-center space-x-2 ml-4">
-                              <div className="flex items-center text-xs text-gray-500">
-                                <Zap className="h-3 w-3 mr-1" />
-                                {model.speed}%
+                      className="border-pink-200 text-pink-600 hover:bg-pink-50 min-w-[80px]"
+                    >
+                      {testingConnections[provider.id] ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <TestTube className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  
+                  {/* Real-time validation and error messages */}
+                  {validationErrors[provider.id] && (
+                    <p className="text-xs text-red-600 mt-1 flex items-center">
+                      <AlertCircle className="h-3 w-3 mr-1" />
+                      {validationErrors[provider.id]}
+                    </p>
+                  )}
+                  
+                  {testErrors[provider.id] && (
+                    <p className="text-xs text-red-600 mt-1 flex items-center">
+                      <AlertCircle className="h-3 w-3 mr-1" />
+                      {testErrors[provider.id]}
+                    </p>
+                  )}
+                  
+                  {settings.aiProvider[`${provider.id}Key`] && !validationErrors[provider.id] && !testErrors[provider.id] && (
+                    <p className="text-xs text-green-600 mt-1 flex items-center">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      API key format is valid
+                    </p>
+                  )}
+                  
+                  {/* Progress bar for testing */}
+                  {testingConnections[provider.id] && (
+                    <div className="mt-2">
+                      <Progress value={testProgress[provider.id] || 0} className="h-2" />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Testing connection to {provider.name}...
+                      </p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Model Selection - Always visible with descriptions */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">
+                    Model Selection
+                  </Label>
+                  <Select
+                    value={settings.aiProvider?.models?.[provider.id] || provider.models[0].id}
+                    onValueChange={(value) => onSettingsChange({
+                      ...settings,
+                      aiProvider: {
+                        ...settings.aiProvider,
+                        models: {
+                          ...settings.aiProvider.models,
+                          [provider.id]: value
+                        }
+                      }
+                    })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {provider.models.map((model) => (
+                        <SelectItem key={model.id} value={model.id} className="cursor-pointer">
+                          <div className="w-full py-2">
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center space-x-2">
+                                <span className="font-medium">{model.name}</span>
+                                {model.recommended && (
+                                  <Badge className="bg-blue-100 text-blue-700 text-xs">
+                                    <Star className="h-2 w-2 mr-1" />
+                                    Recommended
+                                  </Badge>
+                                )}
                               </div>
-                              <div className="flex items-center text-xs text-gray-500">
-                                <DollarSign className="h-3 w-3 mr-1" />
-                                {'$'.repeat(model.cost)}
+                            </div>
+                            <div className="text-xs text-gray-600 mb-2">{model.description}</div>
+                            <div className="grid grid-cols-3 gap-2 text-xs">
+                              <div>
+                                <span className="text-gray-400">Speed:</span>
+                                <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                                  <div 
+                                    className="bg-blue-600 h-1 rounded-full" 
+                                    style={{width: `${model.speed}%`}}
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-gray-400">Quality:</span>
+                                <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                                  <div 
+                                    className="bg-green-600 h-1 rounded-full" 
+                                    style={{width: `${model.capability}%`}}
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-gray-400">Cost:</span>
+                                <div className="flex items-center mt-1">
+                                  {'$'.repeat(model.cost)}
+                                  {'○'.repeat(5 - model.cost)}
+                                </div>
                               </div>
                             </div>
                           </div>
-                          <div className="text-xs text-gray-500">{model.description}</div>
-                          <div className="flex space-x-4 mt-1">
-                            <div className="text-xs">
-                              <span className="text-gray-400">Speed:</span>
-                              <div className="w-12 bg-gray-200 rounded-full h-1 mt-1">
-                                <div 
-                                  className="bg-blue-600 h-1 rounded-full" 
-                                  style={{width: `${model.speed}%`}}
-                                ></div>
-                              </div>
-                            </div>
-                            <div className="text-xs">
-                              <span className="text-gray-400">Capability:</span>
-                              <div className="w-12 bg-gray-200 rounded-full h-1 mt-1">
-                                <div 
-                                  className="bg-green-600 h-1 rounded-full" 
-                                  style={{width: `${model.capability}%`}}
-                                ></div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </Card>
         ))}
       </div>
 
-      {/* Fallback Information */}
+      {/* Status Summary */}
       <Card className="border-blue-100 bg-blue-50">
         <CardContent className="pt-6">
           <div className="flex items-start space-x-3">
             <Zap className="h-5 w-5 text-blue-600 mt-0.5" />
             <div>
-              <h4 className="font-medium text-blue-900">Intelligent Fallback System</h4>
-              <p className="text-sm text-blue-800 mt-1">
-                CandidAI automatically switches to backup providers if the primary fails, ensuring uninterrupted assistance. 
-                Configure multiple providers for maximum reliability.
-              </p>
-              <div className="mt-2 text-xs text-blue-700">
-                <span className="font-medium">Current Fallback Order:</span> {settings.aiProvider?.primary} → 
-                {aiProviders.filter(p => p.id !== settings.aiProvider?.primary && settings.aiProvider[`${p.id}Key`])
-                  .map(p => p.name).join(' → ') || ' (No backup configured)'}
+              <h4 className="font-medium text-blue-900">Configuration Status</h4>
+              <div className="mt-2 space-y-1">
+                <p className="text-sm text-blue-800">
+                  <span className="font-medium">Configured providers:</span> {configuredProviders.length} of {aiProviders.length}
+                </p>
+                <p className="text-sm text-blue-800">
+                  <span className="font-medium">Active provider:</span> {currentProvider?.name || 'None selected'}
+                </p>
+                {configuredProviders.length > 1 && (
+                  <p className="text-xs text-blue-700 mt-2">
+                    💡 Multiple providers configured - automatic fallback enabled for maximum reliability
+                  </p>
+                )}
               </div>
             </div>
           </div>
