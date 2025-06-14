@@ -71,7 +71,7 @@ export const AIAssistant = ({ sessionActive, aiSuggestion, analytics, chatMessag
             </div>
           </ScrollArea>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex flex-col justify-end pb-6">
             <div className="text-center text-gray-500">
               <Brain className="h-16 w-16 mx-auto mb-4 text-gray-300" />
               <p className="text-lg font-medium mb-2">AI assistance ready</p>
