@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,9 +50,9 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
   };
 
   const recentSessions = [
-    { id: 1, type: "Technical Interview", duration: "45:23", score: 89, date: "2024-06-13" },
-    { id: 2, type: "Behavioral Interview", duration: "32:15", score: 92, date: "2024-06-12" },
-    { id: 3, type: "System Design", duration: "38:47", score: 85, date: "2024-06-11" }
+    { id: 1, type: "Technical Meeting", duration: "45:23", score: 89, date: "2024-06-13" },
+    { id: 2, type: "Team Meeting", duration: "32:15", score: 92, date: "2024-06-12" },
+    { id: 3, type: "Sales Call", duration: "38:47", score: 85, date: "2024-06-11" }
   ];
 
   const aiProviders = [
@@ -113,7 +112,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
       const sessionData = {
         id: Date.now().toString(),
         timestamp: Date.now(),
-        platform: "Live Interview",
+        platform: "Live Meeting",
         duration: parseFloat(sessionDuration.replace(':', '.')),
         transcript,
         analytics,
@@ -212,7 +211,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
               <div className="p-2 bg-gradient-to-br from-pink-100 to-rose-100 rounded-lg text-pink-600">
                 <Mic className="h-5 w-5" />
               </div>
-              <span>Interview Session Control</span>
+              <span>Meeting Session Control</span>
               {sessionActive && (
                 <Badge className="bg-green-100 text-green-700 border-green-200">
                   Live Session
@@ -220,7 +219,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
               )}
             </CardTitle>
             <CardDescription>
-              Start your AI-assisted interview session with real-time analysis and suggestions.
+              Start your AI-assisted meeting session with real-time analysis and suggestions.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -243,7 +242,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
                   ) : (
                     <>
                       <Play className="h-5 w-5 mr-2" />
-                      Start Interview
+                      Start Meeting
                     </>
                   )}
                 </Button>
@@ -334,7 +333,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
                   <span>AI Assistant</span>
                 </CardTitle>
                 <CardDescription>
-                  Real-time suggestions and coaching during your interview
+                  Real-time suggestions and coaching during your meeting
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -368,7 +367,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     <Brain className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>AI assistance will appear here during your interview session</p>
+                    <p>AI assistance will appear here during your meeting session</p>
                     <p className="text-sm mt-2">Start a session to receive real-time coaching and suggestions</p>
                   </div>
                 )}
@@ -397,7 +396,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
                   <span>Recent Sessions</span>
                 </CardTitle>
                 <CardDescription>
-                  Your latest interview performance history
+                  Your latest meeting performance history
                 </CardDescription>
               </CardHeader>
               <CardContent>

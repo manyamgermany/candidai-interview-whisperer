@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +14,7 @@ const Index = () => {
   const features = [
     {
       icon: <Brain className="h-6 w-6" />,
-      title: "AI-Powered Interview Assistance",
+      title: "AI-Powered Meeting Assistance",
       description: "Multi-LLM support with OpenAI GPT, Anthropic Claude, and Google Gemini integration for real-time suggestions.",
       highlights: ["Real-time Suggestions", "Multi-LLM Support", "Intelligent Fallback"]
     },
@@ -33,17 +32,17 @@ const Index = () => {
     },
     {
       icon: <Users className="h-6 w-6" />,
-      title: "Interview Coaching Framework",
+      title: "Meeting Coaching Framework",
       description: "Structured response frameworks including STAR, SOAR, and PREP methods with adaptive coaching.",
       highlights: ["STAR Framework", "Coaching Templates", "Practice System"]
     }
   ];
 
   const stats = [
-    { label: "Success Rate", value: "94%", description: "Interview success improvement" },
+    { label: "Success Rate", value: "94%", description: "Meeting success improvement" },
     { label: "AI Models", value: "3", description: "Integrated LLM providers" },
     { label: "Frameworks", value: "5+", description: "Response methodologies" },
-    { label: "Platforms", value: "10+", description: "Supported interview platforms" }
+    { label: "Platforms", value: "10+", description: "Supported meeting platforms" }
   ];
 
   if (activeTab === "dashboard") {
@@ -106,7 +105,7 @@ const Index = () => {
           </Badge>
           <h2 className="text-5xl font-bold text-gray-900 mb-6">
             Advanced
-            <span className="bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent"> AI Interview </span>
+            <span className="bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent"> AI Meeting </span>
             Assistant
           </h2>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
@@ -153,11 +152,11 @@ const Index = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h3 className="text-3xl font-bold text-gray-900 mb-4">
-              Comprehensive Interview
+              Comprehensive Meeting
               <span className="bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent"> Intelligence </span>
             </h3>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Everything you need to excel in professional interviews with advanced AI assistance and analytics.
+              Everything you need to excel in professional meetings with advanced AI assistance and analytics.
             </p>
           </div>
           
@@ -193,9 +192,9 @@ const Index = () => {
       {/* CTA Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-pink-500 to-rose-500">
         <div className="max-w-4xl mx-auto text-center text-white">
-          <h3 className="text-3xl font-bold mb-4">Ready to Transform Your Interview Experience?</h3>
+          <h3 className="text-3xl font-bold mb-4">Ready to Transform Your Meeting Experience?</h3>
           <p className="text-xl mb-8 text-pink-100">
-            Join thousands of professionals who have improved their interview success rate with CandidAI.
+            Join thousands of professionals who have improved their meeting success rate with CandidAI.
           </p>
           <div className="flex items-center justify-center space-x-4">
             <Button 
@@ -238,7 +237,7 @@ const Index = () => {
             <div>
               <h4 className="font-semibold mb-3">Features</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>AI Interview Assistance</li>
+                <li>AI Meeting Assistance</li>
                 <li>Document Processing</li>
                 <li>Performance Analytics</li>
                 <li>Professional Reports</li>
