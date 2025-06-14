@@ -14,7 +14,6 @@ interface SettingsPanelProps {
 const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
   const {
     activeTab, setActiveTab,
-    searchQuery, setSearchQuery,
     settings,
     loading,
     error,
@@ -26,7 +25,6 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
     saveSettings,
     handleWizardComplete,
     handleWizardSkip,
-    handleSearchNavigation,
     loadSettings
   } = useSettings(onNavigate);
 
@@ -44,15 +42,12 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50">
         <SettingsHeader
           onNavigate={onNavigate}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
           setShowWizard={setShowWizard}
           importSettings={importSettings}
           exportSettings={exportSettings}
           resetSection={resetSection}
           resetAllSettings={resetAllSettings}
           saveSettings={saveSettings}
-          handleSearchNavigation={handleSearchNavigation}
         />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <SettingsTabs
@@ -60,7 +55,6 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
             setActiveTab={setActiveTab}
             settings={settings}
             saveSettings={saveSettings}
-            searchQuery={searchQuery}
             resetSection={resetSection}
             exportSettings={exportSettings}
           />

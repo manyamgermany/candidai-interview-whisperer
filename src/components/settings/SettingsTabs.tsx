@@ -12,7 +12,6 @@ interface SettingsTabsProps {
   setActiveTab: (tab: string) => void;
   settings: any;
   saveSettings: (s: any) => void;
-  searchQuery: string;
   resetSection: (section: string) => void;
   exportSettings: () => void;
 }
@@ -22,7 +21,6 @@ export const SettingsTabs = ({
   setActiveTab,
   settings,
   saveSettings,
-  searchQuery,
   resetSection,
   exportSettings
 }: SettingsTabsProps) => (
@@ -50,28 +48,24 @@ export const SettingsTabs = ({
           <AIProviderSection
             settings={settings}
             onSettingsChange={saveSettings}
-            searchQuery={searchQuery}
           />
         </TabsContent>
         <TabsContent value="response" role="tabpanel">
           <ResponseConfigSection
             settings={settings}
             onSettingsChange={saveSettings}
-            searchQuery={searchQuery}
           />
         </TabsContent>
         <TabsContent value="audio" role="tabpanel">
           <AudioSettingsSection
             settings={settings}
             onSettingsChange={saveSettings}
-            searchQuery={searchQuery}
           />
         </TabsContent>
         <TabsContent value="privacy" role="tabpanel">
           <PrivacySection
             settings={settings}
             onSettingsChange={saveSettings}
-            searchQuery={searchQuery}
           />
         </TabsContent>
         <TabsContent value="advanced" role="tabpanel">

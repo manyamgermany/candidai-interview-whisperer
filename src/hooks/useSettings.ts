@@ -9,7 +9,6 @@ import { providerFallbackService } from "@/services/providerFallbackService";
 export const useSettings = (onNavigate: (tab: string) => void) => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("providers");
-  const [searchQuery, setSearchQuery] = useState("");
   const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -233,16 +232,8 @@ export const useSettings = (onNavigate: (tab: string) => void) => {
     reader.readAsText(file);
   };
 
-  const handleSearchNavigation = (section: string, subsection?: string) => {
-    setActiveTab(section);
-    if (subsection) {
-      console.log(`Navigate to ${section} -> ${subsection}`);
-    }
-  };
-
   return {
     activeTab, setActiveTab,
-    searchQuery, setSearchQuery,
     settings, setSettings,
     loading, setLoading,
     error, setError,
@@ -256,7 +247,6 @@ export const useSettings = (onNavigate: (tab: string) => void) => {
     importSettings,
     saveSettings,
     handleWizardComplete,
-    handleWizardSkip,
-    handleSearchNavigation
+    handleWizardSkip
   };
 };

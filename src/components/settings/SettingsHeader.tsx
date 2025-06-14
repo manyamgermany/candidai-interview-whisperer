@@ -2,34 +2,27 @@
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ArrowLeft, Settings, Download, Upload, RotateCcw } from "lucide-react";
-import { EnhancedSettingsSearch } from "./EnhancedSettingsSearch";
 import { ConfigTemplates } from "./ConfigTemplates";
 import { SectionResetButtons } from "./SectionResetButtons";
 
 interface SettingsHeaderProps {
   onNavigate: (tab: string) => void;
-  searchQuery: string;
-  setSearchQuery: (q: string) => void;
   setShowWizard: (v: boolean) => void;
   importSettings: (e: React.ChangeEvent<HTMLInputElement>) => void;
   exportSettings: () => void;
   resetSection: (s: string) => void;
   resetAllSettings: () => void;
   saveSettings: (s: any) => void;
-  handleSearchNavigation: (s: string, sub?: string) => void;
 }
 
 export const SettingsHeader = ({
   onNavigate,
-  searchQuery,
-  setSearchQuery,
   setShowWizard,
   importSettings,
   exportSettings,
   resetSection,
   resetAllSettings,
-  saveSettings,
-  handleSearchNavigation
+  saveSettings
 }: SettingsHeaderProps) => (
   <header className="bg-white/80 backdrop-blur-sm border-b border-pink-100 sticky top-0 z-50">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -64,83 +57,76 @@ export const SettingsHeader = ({
           </div>
         </div>
         <TooltipProvider>
-          <div className="flex items-center space-x-2">
-            <EnhancedSettingsSearch
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              onNavigate={handleSearchNavigation}
+          <div className="flex items-center space-x-1">
+            <ConfigTemplates onApplyTemplate={saveSettings} />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowWizard(true)}
+                  className="h-8 w-8 p-0 text-gray-600 hover:text-pink-600"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Setup Wizard</p>
+              </TooltipContent>
+            </Tooltip>
+            <input
+              type="file"
+              accept=".json"
+              onChange={importSettings}
+              style={{ display: 'none' }}
+              id="import-settings"
             />
-            <div className="flex items-center space-x-1 border-l border-gray-200 pl-3">
-              <ConfigTemplates onApplyTemplate={saveSettings} />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowWizard(true)}
-                    className="h-8 w-8 p-0 text-gray-600 hover:text-pink-600"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Setup Wizard</p>
-                </TooltipContent>
-              </Tooltip>
-              <input
-                type="file"
-                accept=".json"
-                onChange={importSettings}
-                style={{ display: 'none' }}
-                id="import-settings"
-              />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => document.getElementById('import-settings')?.click()}
-                    className="h-8 w-8 p-0 text-gray-600 hover:text-pink-600"
-                  >
-                    <Upload className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Import Settings</p>
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={exportSettings}
-                    className="h-8 w-8 p-0 text-gray-600 hover:text-pink-600"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Export Settings</p>
-                </TooltipContent>
-              </Tooltip>
-              <SectionResetButtons onResetSection={resetSection} />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={resetAllSettings}
-                    className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Reset All Settings</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => document.getElementById('import-settings')?.click()}
+                  className="h-8 w-8 p-0 text-gray-600 hover:text-pink-600"
+                >
+                  <Upload className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Import Settings</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={exportSettings}
+                  className="h-8 w-8 p-0 text-gray-600 hover:text-pink-600"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Export Settings</p>
+              </TooltipContent>
+            </Tooltip>
+            <SectionResetButtons onResetSection={resetSection} />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetAllSettings}
+                  className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Reset All Settings</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </TooltipProvider>
       </div>
