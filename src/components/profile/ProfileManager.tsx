@@ -1,61 +1,18 @@
 
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import React, { memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Save, Upload, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DocumentAnalysis } from "@/types/documentTypes";
+import { useProfileForm, ProfileFormData } from "@/hooks/useProfileForm";
+import { useDocumentPopulation } from "@/hooks/useDocumentPopulation";
 import PersonalInfoTab from "./PersonalInfoTab";
 import ProfessionalTab from "./ProfessionalTab";
 import ProjectsTab from "./ProjectsTab";
 import ExperienceTab from "./ExperienceTab";
 import EducationTab from "./EducationTab";
-
-const profileSchema = z.object({
-  personalInfo: z.object({
-    name: z.string().min(2, "Name must be at least 2 characters"),
-    email: z.string().email("Please enter a valid email"),
-    phone: z.string().min(10, "Please enter a valid phone number"),
-    linkedin: z.string().optional(),
-    github: z.string().optional(),
-    location: z.string().optional(),
-  }),
-  professionalSummary: z.string().min(10, "Professional summary must be at least 10 characters"),
-  targetRole: z.string().min(2, "Target role is required"),
-  experienceLevel: z.enum(["entry", "mid", "senior", "executive"]),
-  skills: z.object({
-    technical: z.array(z.string()).min(1, "At least one technical skill is required"),
-    soft: z.array(z.string()).min(1, "At least one soft skill is required"),
-  }),
-  experience: z.array(z.object({
-    title: z.string(),
-    company: z.string(),
-    duration: z.string(),
-    highlights: z.array(z.string()),
-  })),
-  education: z.array(z.object({
-    degree: z.string(),
-    institution: z.string(),
-    year: z.string(),
-    gpa: z.string().optional(),
-  })),
-  certifications: z.array(z.string()),
-  projects: z.array(z.object({
-    name: z.string(),
-    description: z.string(),
-    role: z.string(),
-    duration: z.string(),
-    url: z.string().optional(),
-    technologies: z.array(z.string()),
-    achievements: z.array(z.string()),
-  })),
-});
-
-type ProfileFormData = z.infer<typeof profileSchema>;
 
 interface ProfileManagerProps {
   initialData?: DocumentAnalysis;
@@ -63,106 +20,14 @@ interface ProfileManagerProps {
   onProfileUpdate?: (data: ProfileFormData) => void;
 }
 
-const ProfileManager = ({ initialData, onNavigate, onProfileUpdate }: ProfileManagerProps) => {
+const ProfileManager = memo(({ initialData, onNavigate, onProfileUpdate }: ProfileManagerProps) => {
   const { toast } = useToast();
-  const [isDataPopulated, setIsDataPopulated] = useState(false);
-
-  const form = useForm<ProfileFormData>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: {
-      personalInfo: {
-        name: "",
-        email: "",
-        phone: "",
-        linkedin: "",
-        github: "",
-        location: "",
-      },
-      professionalSummary: "",
-      targetRole: "",
-      experienceLevel: "mid",
-      skills: {
-        technical: [],
-        soft: [],
-      },
-      experience: [],
-      education: [],
-      certifications: [],
-      projects: [],
-    },
-  });
-
-  // Populate form with document data when available
-  useEffect(() => {
-    if (initialData && !isDataPopulated) {
-      const formData: ProfileFormData = {
-        personalInfo: {
-          name: initialData.personalInfo?.name || "",
-          email: initialData.personalInfo?.email || "",
-          phone: initialData.personalInfo?.phone || "",
-          linkedin: initialData.personalInfo?.linkedin || "",
-          github: initialData.personalInfo?.github || "",
-          location: initialData.personalInfo?.location || "",
-        },
-        professionalSummary: generateProfessionalSummary(initialData),
-        targetRole: inferTargetRole(initialData),
-        experienceLevel: inferExperienceLevel(initialData),
-        skills: {
-          technical: initialData.skills?.technical || [],
-          soft: initialData.skills?.soft || [],
-        },
-        experience: initialData.experience || [],
-        education: initialData.education || [],
-        certifications: initialData.certifications || [],
-        projects: initialData.projects || [],
-      };
-      
-      form.reset(formData);
-      setIsDataPopulated(true);
-      
-      const projectsCount = initialData.projects?.length || 0;
-      toast({
-        title: "Profile Populated",
-        description: `Your profile has been populated from the uploaded document${projectsCount > 0 ? ` including ${projectsCount} project(s)` : ''}.`,
-      });
-    }
-  }, [initialData, form, toast, isDataPopulated]);
-
-  // Reset populated state when initialData changes
-  useEffect(() => {
-    if (!initialData) {
-      setIsDataPopulated(false);
-    }
-  }, [initialData]);
-
-  const generateProfessionalSummary = (data: DocumentAnalysis): string => {
-    const experience = data.experience?.length || 0;
-    const skills = data.skills?.technical?.slice(0, 3).join(", ") || "various technologies";
-    
-    return `Experienced professional with ${experience}+ years in technology, specializing in ${skills}. Proven track record of delivering high-quality solutions and collaborating effectively with cross-functional teams.`;
-  };
-
-  const inferTargetRole = (data: DocumentAnalysis): string => {
-    const experiences = data.experience || [];
-    if (experiences.length > 0) {
-      return experiences[0].title || "Software Engineer";
-    }
-    return "Software Engineer";
-  };
-
-  const inferExperienceLevel = (data: DocumentAnalysis): "entry" | "mid" | "senior" | "executive" => {
-    const experienceCount = data.experience?.length || 0;
-    if (experienceCount >= 3) return "senior";
-    if (experienceCount >= 1) return "mid";
-    return "entry";
-  };
+  const form = useProfileForm();
+  const { isDataPopulated, refreshFromDocument } = useDocumentPopulation(form, initialData);
 
   const onSubmit = async (data: ProfileFormData) => {
     try {
-      // Save profile data to storage
       localStorage.setItem('candidai-profile', JSON.stringify(data));
-      
-      // Notify parent component
       onProfileUpdate?.(data);
       
       toast({
@@ -175,13 +40,6 @@ const ProfileManager = ({ initialData, onNavigate, onProfileUpdate }: ProfileMan
         description: "Failed to save your profile. Please try again.",
         variant: "destructive",
       });
-    }
-  };
-
-  const refreshFromDocument = () => {
-    if (initialData) {
-      setIsDataPopulated(false);
-      // This will trigger the useEffect to repopulate the form
     }
   };
 
@@ -276,6 +134,8 @@ const ProfileManager = ({ initialData, onNavigate, onProfileUpdate }: ProfileMan
       </Form>
     </div>
   );
-};
+});
+
+ProfileManager.displayName = "ProfileManager";
 
 export default ProfileManager;

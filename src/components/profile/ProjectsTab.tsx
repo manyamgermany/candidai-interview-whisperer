@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Briefcase, ExternalLink } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
-import ProjectsManager from "./ProjectsManager";
+import OptimizedProjectsManager from "./OptimizedProjectsManager";
 
 interface ProjectsTabProps {
   form: UseFormReturn<any>;
@@ -29,7 +29,7 @@ const ProjectsTab = ({ form }: ProjectsTabProps) => {
             <FormItem>
               <FormLabel>Projects</FormLabel>
               <FormControl>
-                <ProjectsManager form={form} />
+                <OptimizedProjectsManager form={form} />
               </FormControl>
               <FormMessage />
             </FormItem>
