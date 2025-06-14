@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { speechService } from "@/services/speech/speechService";
 import { aiService } from "@/services/aiService";
 import { chromeStorage } from "@/utils/chromeStorage";
@@ -13,6 +12,21 @@ interface UseSessionManagerProps {
   onAISuggestionChange: (suggestion: any) => void;
   onPerformanceReportGenerated?: (report: PerformanceReport) => void;
 }
+
+// Debounce utility
+const useDebounce = (callback: Function, delay: number) => {
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  
+  return useCallback((...args: any[]) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(() => {
+      callback(...args);
+    }, delay);
+  }, [callback, delay]);
+};
 
 export const useSessionManager = ({
   onSessionChange,
@@ -51,14 +65,19 @@ export const useSessionManager = ({
     return () => clearInterval(interval);
   }, [sessionActive, sessionStartTime]);
 
-  const generateAISuggestion = useCallback(async (text: string) => {
+  // Debounced AI suggestion generation to prevent excessive API calls
+  const debouncedAISuggestion = useDebounce(async (text: string) => {
     try {
       const suggestion = await aiService.generateSuggestion(text, 'behavioral', 'star');
       onAISuggestionChange(suggestion);
     } catch (error) {
       console.error('AI suggestion error:', error);
     }
-  }, [onAISuggestionChange]);
+  }, 2000); // 2 second delay
+
+  const generateAISuggestion = useCallback((text: string) => {
+    debouncedAISuggestion(text);
+  }, [debouncedAISuggestion]);
 
   const generatePerformanceReport = useCallback(async () => {
     if (!currentTranscript || transcriptSegments.length === 0) {

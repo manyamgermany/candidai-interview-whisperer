@@ -1,11 +1,10 @@
 
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { MessageCircle, Clock, Volume2, Target, TrendingUp, AlertTriangle } from "lucide-react";
 import { SpeechAnalytics } from "@/services/speechService";
+import { useCoachingTips, CoachingTip } from "@/hooks/useCoachingTips";
 
 interface RealTimeCoachingProps {
   analytics: SpeechAnalytics;
@@ -13,116 +12,8 @@ interface RealTimeCoachingProps {
   sessionActive: boolean;
 }
 
-interface CoachingTip {
-  id: string;
-  type: 'pace' | 'clarity' | 'confidence' | 'structure' | 'filler';
-  severity: 'low' | 'medium' | 'high';
-  message: string;
-  suggestion: string;
-  timestamp: number;
-}
-
 export const RealTimeCoaching = ({ analytics, transcript, sessionActive }: RealTimeCoachingProps) => {
-  const [activeTips, setActiveTips] = useState<CoachingTip[]>([]);
-  const [dismissedTips, setDismissedTips] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (!sessionActive) return;
-
-    const newTips: CoachingTip[] = [];
-    const currentTime = Date.now();
-
-    // Speaking pace coaching
-    if (analytics.wordsPerMinute > 0) {
-      if (analytics.wordsPerMinute < 100) {
-        newTips.push({
-          id: `pace-slow-${currentTime}`,
-          type: 'pace',
-          severity: 'medium',
-          message: 'Speaking quite slowly',
-          suggestion: 'Try to increase your pace slightly to maintain engagement',
-          timestamp: currentTime
-        });
-      } else if (analytics.wordsPerMinute > 180) {
-        newTips.push({
-          id: `pace-fast-${currentTime}`,
-          type: 'pace',
-          severity: 'high',
-          message: 'Speaking very fast',
-          suggestion: 'Slow down to ensure clarity and comprehension',
-          timestamp: currentTime
-        });
-      }
-    }
-
-    // Filler words coaching
-    const words = transcript.split(' ');
-    const recentWords = words.slice(-50); // Last 50 words
-    const fillerWords = ['um', 'uh', 'like', 'you know', 'actually', 'basically'];
-    const fillerCount = recentWords.filter(word => 
-      fillerWords.includes(word.toLowerCase().replace(/[^\w]/g, ''))
-    ).length;
-    
-    if (fillerCount > 3) {
-      newTips.push({
-        id: `filler-${currentTime}`,
-        type: 'filler',
-        severity: 'medium',
-        message: 'High filler word usage detected',
-        suggestion: 'Take brief pauses instead of using filler words',
-        timestamp: currentTime
-      });
-    }
-
-    // Confidence coaching based on language patterns
-    const recentText = words.slice(-30).join(' ').toLowerCase();
-    const uncertainWords = ['maybe', 'i think', 'probably', 'not sure', 'kind of'];
-    const uncertainCount = uncertainWords.filter(word => recentText.includes(word)).length;
-    
-    if (uncertainCount > 2) {
-      newTips.push({
-        id: `confidence-${currentTime}`,
-        type: 'confidence',
-        severity: 'medium',
-        message: 'Language suggests uncertainty',
-        suggestion: 'Use more definitive language to project confidence',
-        timestamp: currentTime
-      });
-    }
-
-    // Structure coaching
-    const sentences = transcript.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    if (sentences.length > 0) {
-      const lastSentence = sentences[sentences.length - 1];
-      const wordCount = lastSentence.split(' ').length;
-      
-      if (wordCount > 40) {
-        newTips.push({
-          id: `structure-${currentTime}`,
-          type: 'structure',
-          severity: 'low',
-          message: 'Very long sentence detected',
-          suggestion: 'Break down complex ideas into shorter sentences',
-          timestamp: currentTime
-        });
-      }
-    }
-
-    // Filter out dismissed tips and duplicates
-    const filteredTips = newTips.filter(tip => 
-      !dismissedTips.has(tip.id) && 
-      !activeTips.some(existing => existing.type === tip.type && existing.severity === tip.severity)
-    );
-
-    if (filteredTips.length > 0) {
-      setActiveTips(prev => [...prev.slice(-4), ...filteredTips].slice(-5)); // Keep last 5 tips
-    }
-  }, [analytics, transcript, sessionActive]);
-
-  const dismissTip = (tipId: string) => {
-    setDismissedTips(prev => new Set([...prev, tipId]));
-    setActiveTips(prev => prev.filter(tip => tip.id !== tipId));
-  };
+  const { activeTips, dismissTip } = useCoachingTips(analytics, transcript, sessionActive);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {

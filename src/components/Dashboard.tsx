@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { SpeechAnalytics } from "@/services/speechService";
 import { AIResponse } from "@/services/aiService";
@@ -13,13 +12,7 @@ import { InterviewSimulator } from "./dashboard/InterviewSimulator";
 import { SessionHistory } from "./dashboard/SessionHistory";
 import { AIConfigPanel } from "./dashboard/AIConfigPanel";
 import { ChatInput } from "./dashboard/ChatInput";
-
-interface ChatMessage {
-  id: string;
-  type: 'user' | 'ai';
-  content: string;
-  timestamp: number;
-}
+import { ChatMessage } from "@/types/chatTypes";
 
 interface DashboardProps {
   onNavigate: (tab: string) => void;
@@ -193,6 +186,7 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
               onLoadingChange={setIsChatLoading}
               sessionActive={sessionActive}
               currentTranscript={transcript}
+              analytics={analytics}
             />
           </div>
         </div>

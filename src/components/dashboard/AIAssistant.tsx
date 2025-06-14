@@ -4,13 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Brain } from "lucide-react";
 import { AIResponse } from "@/services/aiService";
 import { SpeechAnalytics } from "@/services/speechService";
-
-interface ChatMessage {
-  id: string;
-  type: 'user' | 'ai';
-  content: string;
-  timestamp: number;
-}
+import { ChatMessage } from "@/types/chatTypes";
 
 interface AIAssistantProps {
   sessionActive: boolean;
