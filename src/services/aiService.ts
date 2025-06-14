@@ -1,4 +1,3 @@
-
 export interface AIResponse {
   suggestion: string;
   confidence: number;
@@ -62,28 +61,34 @@ export class AIService {
     // Remove any whitespace, newlines, or extra characters
     const cleaned = apiKey.trim().replace(/\s+/g, '');
     
-    // OpenAI API keys should start with 'sk-' and be around 51 characters
+    // OpenAI API keys validation - handle both old and new formats
     if (cleaned.startsWith('sk-')) {
-      // Check if this might be a duplicated key (common issue)
-      const firstKeyMatch = cleaned.match(/^sk-[A-Za-z0-9\-_]{48,56}/);
-      if (firstKeyMatch) {
-        const extractedKey = firstKeyMatch[0];
+      // New project-based keys start with 'sk-proj-' and are ~164 characters
+      if (cleaned.startsWith('sk-proj-')) {
+        if (cleaned.length >= 150 && cleaned.length <= 200) {
+          return cleaned;
+        }
+        console.warn(`Project API key length ${cleaned.length} is outside expected range (150-200)`);
+        return cleaned; // Still try to use it even if length seems off
+      }
+      
+      // Legacy keys start with 'sk-' and are ~51 characters
+      const legacyKeyMatch = cleaned.match(/^sk-[A-Za-z0-9\-_]{48,56}/);
+      if (legacyKeyMatch) {
+        const extractedKey = legacyKeyMatch[0];
         
         // If the cleaned key is much longer than expected, it's likely duplicated
         if (cleaned.length > extractedKey.length * 1.5) {
-          console.warn('Detected potentially duplicated API key, extracting first valid key');
+          console.warn('Detected potentially duplicated legacy API key, extracting first valid key');
           return extractedKey;
         }
         
-        // Validate length - OpenAI keys are typically 51-56 characters
-        if (extractedKey.length >= 48 && extractedKey.length <= 56) {
-          return extractedKey;
-        }
+        return extractedKey;
       }
       
-      // If we can't extract a valid key, return empty to trigger error
-      console.warn('Could not extract valid OpenAI API key from provided input');
-      return '';
+      // If we can't match either format but it starts with sk-, try using it anyway
+      console.warn('Unknown OpenAI API key format, but starts with sk- so attempting to use');
+      return cleaned;
     }
     
     return cleaned;
@@ -186,17 +191,29 @@ Be supportive, specific, and immediately actionable. Avoid generic advice.`;
   }
 
   private async callOpenAI(provider: AIProvider, prompt: string, framework: string): Promise<AIResponse> {
-    // Validate API key before making request
-    if (!provider.apiKey || provider.apiKey.length < 48 || provider.apiKey.length > 56) {
-      throw new Error(`Invalid OpenAI API key length: ${provider.apiKey?.length || 0} characters. Expected 48-56 characters.`);
+    // Validate API key before making request - updated for new key formats
+    if (!provider.apiKey) {
+      throw new Error('OpenAI API key is required');
     }
 
-    // Double-check API key format
     if (!provider.apiKey.startsWith('sk-')) {
       throw new Error('OpenAI API key must start with "sk-"');
     }
 
-    console.log(`Making OpenAI request with key length: ${provider.apiKey.length}`);
+    // Validate length based on key type
+    if (provider.apiKey.startsWith('sk-proj-')) {
+      // Project-based keys are longer
+      if (provider.apiKey.length < 150 || provider.apiKey.length > 200) {
+        console.warn(`Project API key length ${provider.apiKey.length} is outside typical range, but attempting to use`);
+      }
+    } else {
+      // Legacy keys are shorter
+      if (provider.apiKey.length < 48 || provider.apiKey.length > 60) {
+        console.warn(`Legacy API key length ${provider.apiKey.length} is outside typical range, but attempting to use`);
+      }
+    }
+
+    console.log(`Making OpenAI request with ${provider.apiKey.startsWith('sk-proj-') ? 'project' : 'legacy'} key length: ${provider.apiKey.length}`);
 
     const response = await fetch(provider.endpoint, {
       method: 'POST',
