@@ -1,4 +1,3 @@
-
 import { SpeechAnalyticsCalculator, SpeechAnalytics, TranscriptSegment } from './speech/speechAnalytics';
 
 export interface AudioAnalysis {
@@ -166,7 +165,7 @@ export class UnifiedAudioService {
 
   private analyzeTranscript(transcript: string): AudioAnalysis {
     const text = transcript.toLowerCase();
-    let bestMatch = { type: 'general' as const, confidence: 0 };
+    let bestMatch: { type: 'behavioral' | 'technical' | 'situational' | 'general', confidence: number } = { type: 'general', confidence: 0 };
     let isQuestion = false;
 
     // Enhanced question detection with confidence scoring

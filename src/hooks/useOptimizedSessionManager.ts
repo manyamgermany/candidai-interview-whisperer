@@ -1,7 +1,6 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { unifiedAudioService, AudioAnalysis } from '@/services/unifiedAudioService';
+import { unifiedAudioService, AudioAnalysis, UnifiedAudioService } from '@/services/unifiedAudioService';
 import { aiSuggestionService, AISuggestion } from '@/services/aiSuggestionService';
 import { SpeechAnalytics, TranscriptSegment } from '@/services/speech/speechAnalytics';
 
@@ -114,7 +113,7 @@ export const useOptimizedSessionManager = () => {
   }, []);
 
   const startSession = useCallback(async () => {
-    if (!unifiedAudioService.constructor.isSupported()) {
+    if (!UnifiedAudioService.isSupported()) {
       handleError('Speech recognition not supported in this browser');
       return false;
     }
@@ -221,7 +220,7 @@ export const useOptimizedSessionManager = () => {
     clearError,
     
     // Computed values for UI
-    isSupported: unifiedAudioService.constructor.isSupported(),
+    isSupported: UnifiedAudioService.isSupported(),
     canStart: !sessionState.isActive && sessionState.status !== 'error',
     hasError: !!sessionState.errorMessage,
     hasActiveSuggestion: !!sessionState.currentSuggestion,
