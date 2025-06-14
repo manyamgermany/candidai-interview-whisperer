@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { SpeechAnalytics } from "@/services/speechService";
 import { AIResponse } from "@/services/aiService";
@@ -7,8 +8,8 @@ import { SessionControl } from "./dashboard/SessionControl";
 import { LiveMetrics } from "./dashboard/LiveMetrics";
 import { AIAssistant } from "./dashboard/AIAssistant";
 import { TranscriptDisplay } from "./dashboard/TranscriptDisplay";
-import { RecentSessions } from "./dashboard/RecentSessions";
 import { Sidebar } from "./dashboard/Sidebar";
+import { QuickActions } from "./dashboard/QuickActions";
 import { ProfileManager } from "./profile/ProfileManager";
 import { PerformanceReports } from "./dashboard/PerformanceReports";
 import { InterviewSimulator } from "./dashboard/InterviewSimulator";
@@ -140,6 +141,14 @@ const Dashboard = ({ onNavigate }: DashboardProps) => {
       <DashboardHeader onNavigate={onNavigate} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Quick Actions */}
+        <div className="mb-8">
+          <QuickActions 
+            onNavigate={onNavigate}
+            onViewChange={setActiveView}
+          />
+        </div>
+
         {/* Session Control */}
         <div className="mb-8">
           <SessionControl
