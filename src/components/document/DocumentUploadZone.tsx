@@ -1,10 +1,9 @@
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Upload, Loader2, CheckCircle, AlertCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Upload, Loader2, CheckCircle } from "lucide-react";
 
 interface DocumentUploadZoneProps {
   dragActive: boolean;
@@ -32,16 +31,19 @@ const DocumentUploadZone = ({
   processingComplete = false
 }: DocumentUploadZoneProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
 
   const handleFileSelect = () => {
     if (isProcessing) return;
+    console.log('Upload zone file select clicked');
     fileInputRef.current?.click();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('Upload zone file change:', e.target.files?.length);
     if (e.target.files && !isProcessing) {
       onFilesSelected(e.target.files);
+      // Reset the input value so the same file can be selected again
+      e.target.value = '';
     }
   };
 

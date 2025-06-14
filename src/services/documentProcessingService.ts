@@ -18,8 +18,14 @@ class DocumentProcessingService {
     };
 
     try {
-      console.log('Starting document processing for:', file.name);
+      console.log('Starting document processing for:', file.name, 'Type:', file.type, 'Size:', file.size);
       
+      // Save initial document state
+      onProgress?.('Initializing document...', 10);
+      document.processingStep = 'Initializing document...';
+      await documentStorageService.saveDocument(document);
+      
+      // Extract text content
       onProgress?.('Extracting text content...', 25);
       document.processingStep = 'Extracting text content...';
       await documentStorageService.saveDocument(document);
@@ -28,18 +34,29 @@ class DocumentProcessingService {
       document.rawText = rawText;
       
       console.log('Text extracted successfully, length:', rawText.length);
+      console.log('Text preview:', rawText.substring(0, 200));
 
+      // Parse content
       onProgress?.('Analyzing resume content...', 50);
       document.processingStep = 'Analyzing resume content...';
       await documentStorageService.saveDocument(document);
 
       const parsedContent = contentParsingService.parseResumeContent(rawText);
       
-      console.log('Content parsed successfully');
+      console.log('Content parsed successfully:', {
+        hasPersonalInfo: !!parsedContent.personalInfo,
+        technicalSkills: parsedContent.skills?.technical?.length || 0,
+        softSkills: parsedContent.skills?.soft?.length || 0,
+        experience: parsedContent.experience?.length || 0,
+        education: parsedContent.education?.length || 0
+      });
 
+      // Generate insights
       onProgress?.('Generating AI insights...', 75);
       document.processingStep = 'Generating AI insights...';
       await documentStorageService.saveDocument(document);
+
+      const insights = insightsGenerationService.generateInsights(parsedContent);
 
       const analysis: DocumentAnalysis = {
         personalInfo: parsedContent.personalInfo || {
@@ -51,9 +68,10 @@ class DocumentProcessingService {
         experience: parsedContent.experience || [],
         education: parsedContent.education || [],
         certifications: parsedContent.certifications || [],
-        insights: insightsGenerationService.generateInsights(parsedContent)
+        insights
       };
 
+      // Finalize
       onProgress?.('Finalizing analysis...', 90);
       document.processingStep = 'Finalizing analysis...';
 
@@ -61,7 +79,12 @@ class DocumentProcessingService {
       document.status = 'completed';
       delete document.processingStep;
 
-      console.log('Document processed successfully with real data');
+      console.log('Document processed successfully with analysis:', {
+        personalInfo: analysis.personalInfo.name,
+        technicalSkills: analysis.skills.technical.length,
+        softSkills: analysis.skills.soft.length,
+        overallScore: analysis.insights.overallScore
+      });
 
       await documentStorageService.saveDocument(document);
       onProgress?.('Analysis complete!', 100);
@@ -70,7 +93,7 @@ class DocumentProcessingService {
     } catch (error) {
       console.error('Document processing failed:', error);
       document.status = 'error';
-      document.processingStep = 'Processing failed';
+      document.processingStep = `Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
       await documentStorageService.saveDocument(document);
       return document;
     }

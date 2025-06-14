@@ -18,7 +18,6 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
     selectedFiles,
     setSelectedFiles,
     dragActive,
-    setDragActive,
     isLoading,
     isProcessing,
     processingProgress,
@@ -31,7 +30,8 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
     toast,
     loadExistingDocuments,
     handleFiles,
-    handleManualProfileSave
+    handleManualProfileSave,
+    handleDragEvents
   } = useDocumentProcessor();
 
   const handleSelectFile = (fileId: string, checked: boolean) => {
@@ -101,26 +101,6 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
     });
   };
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFiles(e.dataTransfer.files);
-    }
-  };
-
   const removeFile = async (id: string) => {
     try {
       await documentProcessingService.deleteDocument(id);
@@ -157,6 +137,19 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
     URL.revokeObjectURL(url);
   };
 
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      console.log('File input change:', e.target.files.length, 'files');
+      handleFiles(e.target.files);
+    }
+  };
+
+  const handleFileInputClick = () => {
+    if (isProcessing) return;
+    console.log('File input clicked');
+    fileInputRef.current?.click();
+  };
+
   const completedFiles = uploadedFiles.filter(f => f.status === 'completed');
   const latestAnalysis = manualProfile || completedFiles[0]?.analysis;
 
@@ -165,7 +158,8 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
     completedFiles: completedFiles.length,
     hasLatestAnalysis: !!latestAnalysis,
     isProcessing,
-    processingComplete
+    processingComplete,
+    dragActive
   });
 
   if (isLoading) {
@@ -219,10 +213,10 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
         <div className="grid lg:grid-cols-3 gap-8">
           <DocumentProcessorUploadSection
             dragActive={dragActive}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
+            onDragEnter={handleDragEvents.onDragEnter}
+            onDragLeave={handleDragEvents.onDragLeave}
+            onDragOver={handleDragEvents.onDragOver}
+            onDrop={handleDragEvents.onDrop}
             onFilesSelected={handleFiles}
             isProcessing={isProcessing}
             processingStep={processingStep}
@@ -242,13 +236,24 @@ const DocumentProcessor = ({ onNavigate }: DocumentProcessorProps) => {
           <div className="lg:col-span-2">
             <AnalysisResults
               analysis={latestAnalysis}
-              onUploadClick={() => fileInputRef.current?.click()}
+              onUploadClick={handleFileInputClick}
               onManualCreate={() => setViewMode('manual-form')}
               isProcessing={isProcessing}
               processingStep={processingStep}
             />
           </div>
         </div>
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.txt,.docx,.md"
+          multiple
+          onChange={handleFileInputChange}
+          className="hidden"
+          disabled={isProcessing}
+        />
       </div>
     </div>
   );

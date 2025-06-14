@@ -45,47 +45,58 @@ export const useDocumentProcessor = () => {
     }
   };
 
+  const validateFile = (file: File): string | null => {
+    const supportedTypes = [
+      'application/pdf',
+      'text/plain',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/markdown'
+    ];
+    
+    const supportedExtensions = ['.pdf', '.txt', '.docx', '.md'];
+    
+    const isValidType = supportedTypes.includes(file.type) || 
+                       supportedExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+
+    if (!isValidType) {
+      return "Please upload PDF, TXT, DOCX, or MD files only.";
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      return "Please upload files smaller than 10MB.";
+    }
+
+    return null;
+  };
+
   const handleFiles = async (files: FileList) => {
     console.log('Starting file processing for', files.length, 'files');
     
+    if (files.length === 0) {
+      console.log('No files provided');
+      return;
+    }
+
     setIsProcessing(true);
     setProcessingProgress(0);
     setProcessingStep('Preparing to process documents...');
     setProcessingComplete(false);
     
     for (const file of Array.from(files)) {
-      const supportedTypes = [
-        'application/pdf',
-        'text/plain',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'text/markdown'
-      ];
+      console.log('Processing file:', file.name, 'Type:', file.type, 'Size:', file.size);
       
-      const supportedExtensions = ['.pdf', '.txt', '.docx', '.md'];
-      
-      const isValidType = supportedTypes.includes(file.type) || 
-                         supportedExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
-
-      if (!isValidType) {
+      const validationError = validateFile(file);
+      if (validationError) {
         toast({
-          title: "Unsupported File Type",
-          description: "Please upload PDF, TXT, DOCX, or MD files only.",
-          variant: "destructive",
-        });
-        continue;
-      }
-
-      if (file.size > 10 * 1024 * 1024) {
-        toast({
-          title: "File Too Large",
-          description: "Please upload files smaller than 10MB.",
+          title: "Invalid File",
+          description: validationError,
           variant: "destructive",
         });
         continue;
       }
 
       try {
-        console.log('Processing file:', file.name);
+        console.log('Starting document processing for:', file.name);
         
         toast({
           title: "Processing Started",
@@ -114,10 +125,10 @@ export const useDocumentProcessor = () => {
             title: "Document Processed Successfully",
             description: `${file.name} has been analyzed and is ready for use.`,
           });
-        } else {
+        } else if (processedDoc.status === 'error') {
           toast({
             title: "Processing Failed",
-            description: `Failed to process ${file.name}.`,
+            description: `Failed to process ${file.name}. Please check the file format and try again.`,
             variant: "destructive",
           });
         }
@@ -125,7 +136,7 @@ export const useDocumentProcessor = () => {
         console.error('File processing error:', error);
         toast({
           title: "Processing Error",
-          description: `Error processing ${file.name}.`,
+          description: `Error processing ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
           variant: "destructive",
         });
       }
@@ -136,25 +147,63 @@ export const useDocumentProcessor = () => {
     setProcessingStep('');
   };
 
-  const handleManualProfileSave = (analysis: DocumentAnalysis) => {
-    const manualDoc: ProcessedDocument = {
-      id: 'manual-profile-' + Date.now(),
-      name: 'Manual Profile',
-      type: 'manual',
-      size: 0,
-      status: 'completed',
-      uploadedAt: Date.now(),
-      analysis
-    };
+  const handleManualProfileSave = async (analysis: DocumentAnalysis) => {
+    try {
+      const manualDoc: ProcessedDocument = {
+        id: 'manual-profile-' + Date.now(),
+        name: 'Manual Profile',
+        type: 'manual',
+        size: 0,
+        status: 'completed',
+        uploadedAt: Date.now(),
+        analysis
+      };
 
-    setManualProfile(analysis);
-    setUploadedFiles(prev => [manualDoc, ...prev]);
-    setViewMode('main');
-    
-    toast({
-      title: "Manual Profile Created",
-      description: "Your profile has been created and is ready for interview assistance.",
-    });
+      await documentProcessingService.saveDocument(manualDoc);
+      setManualProfile(analysis);
+      setUploadedFiles(prev => [manualDoc, ...prev]);
+      setViewMode('main');
+      
+      toast({
+        title: "Manual Profile Created",
+        description: "Your profile has been created and is ready for interview assistance.",
+      });
+    } catch (error) {
+      console.error('Failed to save manual profile:', error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save manual profile.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDragEvents = {
+    onDragEnter: (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(true);
+    },
+    onDragLeave: (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
+    },
+    onDragOver: (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(true);
+    },
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setDragActive(false);
+      
+      console.log('Files dropped:', e.dataTransfer.files.length);
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFiles(e.dataTransfer.files);
+      }
+    }
   };
 
   return {
@@ -176,6 +225,7 @@ export const useDocumentProcessor = () => {
     toast,
     loadExistingDocuments,
     handleFiles,
-    handleManualProfileSave
+    handleManualProfileSave,
+    handleDragEvents
   };
 };
