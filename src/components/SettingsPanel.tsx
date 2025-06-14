@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { chromeStorage } from "@/utils/chromeStorage";
 import { ArrowLeft, Settings, Download, Upload, RotateCcw } from "lucide-react";
@@ -329,64 +330,96 @@ const SettingsPanel = ({ onNavigate }: SettingsPanelProps) => {
               </div>
               
               {/* Enhanced Search and Actions */}
-              <div className="flex items-center space-x-3">
-                <EnhancedSettingsSearch 
-                  searchQuery={searchQuery} 
-                  onSearchChange={setSearchQuery}
-                  onNavigate={handleSearchNavigation}
-                />
-                <ConfigTemplates onApplyTemplate={saveSettings} />
-                <SectionResetButtons onResetSection={resetSection} />
-                
-                {!isFirstTime && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setShowWizard(true)}
-                    className="border-pink-200 text-pink-600 hover:bg-pink-50"
-                  >
-                    Setup Wizard
-                  </Button>
-                )}
-                
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={importSettings}
-                  style={{ display: 'none' }}
-                  id="import-settings"
-                />
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => document.getElementById('import-settings')?.click()}
-                  className="border-pink-200 text-pink-600 hover:bg-pink-50"
-                  aria-label="Import Settings"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={exportSettings}
-                  className="border-pink-200 text-pink-600 hover:bg-pink-50"
-                  aria-label="Export Settings"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={resetAllSettings}
-                  className="border-pink-200 text-pink-600 hover:bg-pink-50"
-                  aria-label="Reset to Defaults"
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Reset All
-                </Button>
-              </div>
+              <TooltipProvider>
+                <div className="flex items-center space-x-3">
+                  <EnhancedSettingsSearch 
+                    searchQuery={searchQuery} 
+                    onSearchChange={setSearchQuery}
+                    onNavigate={handleSearchNavigation}
+                  />
+                  <ConfigTemplates onApplyTemplate={saveSettings} />
+                  <SectionResetButtons onResetSection={resetSection} />
+                  
+                  {!isFirstTime && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setShowWizard(true)}
+                          className="border-pink-200 text-pink-600 hover:bg-pink-50"
+                        >
+                          Setup Wizard
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Run the setup wizard again</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={importSettings}
+                    style={{ display: 'none' }}
+                    id="import-settings"
+                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => document.getElementById('import-settings')?.click()}
+                        className="border-pink-200 text-pink-600 hover:bg-pink-50"
+                        aria-label="Import Settings"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Import settings from JSON file</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={exportSettings}
+                        className="border-pink-200 text-pink-600 hover:bg-pink-50"
+                        aria-label="Export Settings"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Export settings as JSON file</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={resetAllSettings}
+                        className="border-pink-200 text-pink-600 hover:bg-pink-50"
+                        aria-label="Reset to Defaults"
+                      >
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Reset All
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Reset all settings to defaults</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
             </div>
           </div>
         </header>
