@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +23,12 @@ export const SessionControl = ({
   const [isRecording, setIsRecording] = useState(false);
   const [sessionActive, setSessionActive] = useState(false);
   const [sessionDuration, setSessionDuration] = useState("00:00");
+  const [currentAnalytics, setCurrentAnalytics] = useState({
+    wordsPerMinute: 0,
+    fillerWords: 0,
+    confidenceScore: 0
+  });
+  const [currentTranscript, setCurrentTranscript] = useState("");
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -61,6 +66,7 @@ export const SessionControl = ({
 
       speechService.startListening({
         onTranscript: (text) => {
+          setCurrentTranscript(text);
           onTranscriptChange(text);
           const recentText = text.split(' ').slice(-20).join(' ');
           if (recentText.length > 10) {
@@ -68,6 +74,11 @@ export const SessionControl = ({
           }
         },
         onAnalytics: (newAnalytics) => {
+          setCurrentAnalytics({
+            wordsPerMinute: newAnalytics.wordsPerMinute || 0,
+            fillerWords: newAnalytics.fillerWords || 0,
+            confidenceScore: newAnalytics.confidenceScore || 0
+          });
           onAnalyticsChange(newAnalytics);
         },
         onError: (error) => {
@@ -80,14 +91,14 @@ export const SessionControl = ({
       onSessionChange(false);
       speechService.stopListening();
       
-      // Save session data
+      // Save session data with correct analytics structure
       const sessionData = {
         id: Date.now().toString(),
         timestamp: Date.now(),
         platform: "Live Meeting",
         duration: parseFloat(sessionDuration.replace(':', '.')),
-        transcript: '',
-        analytics: {},
+        transcript: currentTranscript,
+        analytics: currentAnalytics,
         suggestions: []
       };
       await chromeStorage.saveSession(sessionData);
@@ -100,8 +111,18 @@ export const SessionControl = ({
         speechService.stopListening();
       } else {
         speechService.startListening({
-          onTranscript: onTranscriptChange,
-          onAnalytics: onAnalyticsChange
+          onTranscript: (text) => {
+            setCurrentTranscript(text);
+            onTranscriptChange(text);
+          },
+          onAnalytics: (newAnalytics) => {
+            setCurrentAnalytics({
+              wordsPerMinute: newAnalytics.wordsPerMinute || 0,
+              fillerWords: newAnalytics.fillerWords || 0,
+              confidenceScore: newAnalytics.confidenceScore || 0
+            });
+            onAnalyticsChange(newAnalytics);
+          }
         });
       }
       setIsRecording(!isRecording);
