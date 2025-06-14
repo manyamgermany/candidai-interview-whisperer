@@ -6,11 +6,5 @@ interface SidebarProps {
 export const Sidebar = ({
   onViewChange
 }: SidebarProps) => {
-  return <div className="space-y-6">
-      {/* Minimal sidebar for focused dashboard */}
-      <Card className="border-pink-100">
-        
-        
-      </Card>
-    </div>;
+  return;
 };
