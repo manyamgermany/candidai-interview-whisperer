@@ -4,6 +4,7 @@ import { AISuggestion, AIResponse } from "@/types";
 export class AIService {
   private apiKey: string | null = null;
   private provider: string = 'openai';
+  private model: string = 'gpt-4o-mini';
   private config: any = {};
 
   constructor() {
@@ -17,6 +18,7 @@ export class AIService {
         this.config = data.aiConfig;
         this.apiKey = data.aiConfig.apiKey || null;
         this.provider = data.aiConfig.provider || 'openai';
+        this.model = data.aiConfig.model || 'gpt-4o-mini';
       }
     }
   }
@@ -30,9 +32,13 @@ export class AIService {
 
     // Mock response for demonstration
     const mockSuggestion: AISuggestion = {
-      text: `Based on the context, consider using the ${framework || 'STAR'} method.`,
-      framework: framework || 'STAR',
-      confidence: 75
+      id: `suggestion_${Date.now()}`,
+      suggestion: `Based on the context, consider using the ${framework || 'STAR'} method to structure your response. Focus on providing specific examples and quantifiable results.`,
+      confidence: 75,
+      type: 'answer',
+      timestamp: Date.now(),
+      context: context.slice(0, 100),
+      framework: framework || 'STAR'
     };
 
     // Simulate delay
@@ -43,6 +49,9 @@ export class AIService {
   async configure(provider: string, apiKey?: string): Promise<void> {
     console.log('Configuring AI service with:', provider);
     const config = { provider, apiKey };
+    this.provider = provider;
+    this.apiKey = apiKey || null;
+    
     // Store configuration
     if (typeof chrome !== 'undefined' && chrome.storage) {
       await chrome.storage.local.set({ aiConfig: config });

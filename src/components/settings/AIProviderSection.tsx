@@ -262,11 +262,7 @@ export const AIProviderSection = ({ settings, onSettingsChange }: AIProviderSect
       }, 200);
 
       // Configure the provider temporarily for testing
-      await aiService.configure(
-        provider, 
-        apiKey, 
-        settings.aiProvider.models[provider]
-      );
+      await aiService.configure(provider, apiKey);
       
       const isWorking = await aiService.testProvider(provider);
       

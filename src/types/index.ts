@@ -1,8 +1,13 @@
 
 export interface AISuggestion {
-  text: string;
-  framework: string;
+  id: string;
+  suggestion: string;
   confidence: number;
+  type: 'answer' | 'clarification' | 'follow-up' | 'screenshot-analysis';
+  timestamp: number;
+  context: string;
+  framework?: string;
+  reasoning?: string;
 }
 
 export interface AIResponse {
@@ -25,4 +30,8 @@ export interface SpeechAnalytics {
   averageConfidence: number;
   totalWords: number;
   sessionDuration: number;
+  fillerWords: number;
+  pauseDuration: number;
+  confidenceScore: number;
+  speakingTime: number;
 }

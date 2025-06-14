@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AIResponse } from '@/types';
 import { SpeechAnalytics } from '@/services/speechService';
+import { StorageSettings, SessionData } from '@/types/chromeStorageTypes';
 
 interface SessionState {
   isActive: boolean;
